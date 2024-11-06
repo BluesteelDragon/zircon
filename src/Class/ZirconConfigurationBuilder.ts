@@ -196,7 +196,12 @@ export class ZirconConfigurationBuilder {
 	 * @param groups - The groups this function is available to.
 	 * @returns This configuration builder.
 	 */
-	public AddFunction<A extends ReadonlyArray<ZirconValidator<any, any>>, R extends void | ZrValue = void>(functionType: ZirconFunction<A, R>, groups: ReadonlyArray<string>): this {
+	public AddFunction<
+		A extends ReadonlyArray<ZirconValidator<any, any>>,
+		R extends void | ZrValue = void,
+	>(functionType: ZirconFunction<A, R>, 
+groups: ReadonlyArray<string>
+): this {
 		this.configuration.Registry = [...this.configuration.Registry, [functionType, groups]];
 		return this;
 	}
@@ -245,13 +250,13 @@ export class ZirconConfigurationBuilder {
 	 */
 	public static logging(): ZirconConfiguration {
 		return new ZirconConfigurationBuilder()
-			.CreateGroup(255, ZirconDefaultGroup.Creator, (group) =>
-				group.BindToCreator().SetPermissions({
+			.CreateGroup(255, ZirconDefaultGroup.Creator, group => {
+				return group.BindToCreator().SetPermissions({
 					CanAccessFullZirconEditor: false,
 					CanExecuteZirconiumScripts: false,
-					CanRecieveServerLogMessages: true,
-				}),
-			)
+					CanReceiveServerLogMessages: true,
+				});
+			})
 			.CreateDefaultUserGroup()
 			.Build();
 	}

@@ -123,7 +123,7 @@ export default class ZirconWindow extends Roact.Component<WindowProps, WindowSta
 
 				if (this.props.DragBegan !== undefined) {
 					this.maid.GiveTask(
-						this.dragController.DragBegan.Connect((began) => {
+						this.dragController.DragBegan.Connect(began => {
 							this.props.DragBegan?.(began.InputPosition);
 						}),
 					);
@@ -131,7 +131,7 @@ export default class ZirconWindow extends Roact.Component<WindowProps, WindowSta
 
 				if (this.props.DragEnded !== undefined) {
 					this.maid.GiveTask(
-						this.dragController.DragBegan.Connect((ended) => {
+						this.dragController.DragBegan.Connect(ended => {
 							this.props.DragEnded?.(ended.InputPosition);
 						}),
 					);

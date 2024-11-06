@@ -16,7 +16,8 @@ export default function createPermissionMiddleware(
 			const matchingGroup = groups.find(value => value.HasMember(sender));
 
 			if (matchingGroup !== undefined) {
-				return nxt(sender, ...args);
+				nxt(sender, ...args);
+				return;
 			}
 
 			log.Write(

@@ -6,7 +6,7 @@ import type {
 	ZirconLogErrorOutput,
 	ZirconLogOutput,
 	ZirconStandardOutput,
-} from "Shared/Remotes";
+} from "Shared/remotes";
 
 import { formatParse, formatTokensPlain } from "./Format";
 

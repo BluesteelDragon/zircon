@@ -9,8 +9,8 @@ import type {
 	ZirconDebugInformation,
 	ZirconiumParserErrorMessage,
 	ZirconiumRuntimeErrorMessage,
-} from "./Remotes";
-import { ZirconNetworkMessageType } from "./Remotes";
+} from "./remotes";
+import { ZirconNetworkMessageType } from "./remotes";
 
 /** @internal */
 export namespace ZirconDebug {

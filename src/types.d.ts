@@ -68,12 +68,14 @@ type _CommandArgument =
 	| NumberCommandArgument
 	| StringCommandArgument;
 
+/* eslint-disable perfectionist/sort-intersection-types -- This is Schrodinger's lint I swear to god */
 export type CommandArgument = (
 	| _CommandArgument
 	| UnionType<ReadonlyArray<CommandArgumentTypeId>>
 ) & {
 	variadic?: true;
 };
+/* eslint-enable perfectionist/sort-intersection-types */
 
 export type CommandArgumentTypeId = _CommandArgument["type"];
 

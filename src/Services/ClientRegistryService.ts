@@ -8,7 +8,7 @@ import type {
 import { ZirconEnum } from "Class/ZirconEnum";
 import { ZirconFunction } from "Class/ZirconFunction";
 import ZirconClientStore from "Client/BuiltInConsole/Store";
-import { ConsoleActionName } from "Client/BuiltInConsole/Store/_reducers/ConsoleReducer";
+import { ConsoleActionName } from "Client/BuiltInConsole/Store/_reducers/console-reducer";
 
 export namespace ZirconClientRegistryService {
 	const globals = new Array<ZirconClientScopedGlobal>();

@@ -9,9 +9,9 @@ export interface ZirconGroupLink {
 
 export enum ZirconBindingType {
 	Creator = 1 << 0,
+	Everyone = 1 << 30,
 	Group = 1 << 1,
 	UserIds = 1 << 2,
-	Everyone = 1 << 30,
 }
 
 export interface ZirconGroupConfiguration {
@@ -38,9 +38,9 @@ export class ZirconGroupBuilder {
 	public userIds = new Array<number>();
 
 	constructor(
-		private parent: ZirconConfigurationBuilder,
-		private rank: number,
-		private id: string,
+		private readonly parent: ZirconConfigurationBuilder,
+		private readonly rank: number,
+		private readonly id: string,
 	) {}
 
 	/** @deprecated @hidden */
@@ -55,7 +55,7 @@ export class ZirconGroupBuilder {
 	/**
 	 * Sets the permissions applicable to this group.
 	 *
-	 * @param permissions The permissions to override
+	 * @param permissions - The permissions to override.
 	 */
 	public SetPermissions(permissions: Partial<ZirconPermissions>): this {
 		this.permissions = {
@@ -79,8 +79,8 @@ export class ZirconGroupBuilder {
 	/**
 	 * Binds this group to the specified group, and the role.
 	 *
-	 * @param groupId The group id
-	 * @param groupRole The role (string)
+	 * @param groupId - The group id.
+	 * @param groupRole - The role (string).
 	 */
 	public BindToGroupRole(groupId: number, groupRole: string): this {
 		this.groupLink.push({
@@ -91,27 +91,28 @@ export class ZirconGroupBuilder {
 	}
 
 	/**
-	 * Binds this group to the specified user ids
-	 * @param userIds The user ids
+	 * Binds this group to the specified user ids.
+	 *
+	 * @param userIds - The user ids.
 	 */
-	public BindToUserIds(userIds: readonly number[]) {
+	public BindToUserIds(userIds: ReadonlyArray<number>): this {
 		this.bindType |= ZirconBindingType.UserIds;
 		for (const userId of userIds) {
 			this.userIds.push(userId);
 		}
+
 		return this;
 	}
 
-	/**
-	 * Binds this group to _all players_.
-	 */
-	public BindToEveryone() {
+	/** Binds this group to _all players_. */
+	public BindToEveryone(): this {
 		this.bindType |= ZirconBindingType.Everyone;
 		return this;
 	}
 
 	/**
-	 * Binds the group to the creator of this game - either the group owner (if a group game) or the place owner.
+	 * Binds the group to the creator of this game - either the group owner (if
+	 * a group game) or the place owner.
 	 */
 	public BindToCreator(): this {
 		this.bindType |= ZirconBindingType.Creator;
@@ -121,8 +122,8 @@ export class ZirconGroupBuilder {
 	/**
 	 * Binds this group to the specified group role and rank.
 	 *
-	 * @param groupId The group id
-	 * @param groupRank The group rank (number)
+	 * @param groupId - The group id.
+	 * @param groupRank - The group rank (number).
 	 */
 	public BindToGroupRank(groupId: number, groupRank: number): this {
 		this.bindType |= ZirconBindingType.Group;

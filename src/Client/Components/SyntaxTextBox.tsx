@@ -19,73 +19,65 @@ interface SyntaxTextBoxState {
 	virtualCursorPosition: number;
 }
 interface SyntaxTextBoxProps {
-	/**
-	 * The source string
-	 */
-	Source: string;
-
-	/** The size of this textbox */
-	Size?: UDim2;
-	/** The position of this textbox */
-	Position?: UDim2;
-	/** Whether or not this textbox is focused */
-	Focused?: boolean;
-	/**
-	 * Whether or not to auto focus this text box
-	 */
+	/** Whether or not to auto focus this text box. */
 	AutoFocus?: boolean;
 
-	/**
-	 * Whether or not to refocus this text box on submit
-	 */
-	RefocusOnSubmit?: boolean;
+	CancelKeyCodes?: Array<Enum.KeyCode>;
 
-	CancelKeyCodes?: Enum.KeyCode[];
+	/** Whether or not this textbox is focused. */
+	Focused?: boolean;
 
-	/**
-	 * Whether or not this textbox is multi lined
-	 */
+	/** Whether or not this textbox is multi lined. */
 	MultiLine?: boolean;
-
-	/**
-	 * The placeholder text
-	 */
-	PlaceholderText?: string;
-
-	/**
-	 * When this text box is submitted (if not `MultiLine`)
-	 */
-	OnEnterSubmit?: (input: string) => void;
-
-	OnHistoryTraversal?: (direction: HistoryTraversalDirection) => void;
 
 	OnCancel?: () => void;
 
 	OnControlKey?: (keyCode: Enum.KeyCode, io: InputObject) => void;
+
+	/** When this text box is submitted (if not `MultiLine`). */
+	OnEnterSubmit?: (input: string) => void;
+
+	OnHistoryTraversal?: (direction: HistoryTraversalDirection) => void;
+
+	/** The placeholder text. */
+	PlaceholderText?: string;
+
+	/** The position of this textbox. */
+	Position?: UDim2;
+
+	/** Whether or not to refocus this text box on submit. */
+	RefocusOnSubmit?: boolean;
+
+	/** The size of this textbox. */
+	Size?: UDim2;
+
+	/** The source string. */
+	Source: string;
 }
 
-/**
- * A basic syntax text box
- */
-export default class ZirconSyntaxTextBox extends Roact.Component<SyntaxTextBoxProps, SyntaxTextBoxState> {
-	private ref = Roact.createRef<TextBox>();
-	private maid = new Maid();
-	private focusMaid = new Maid();
+/** A basic syntax text box. */
+export default class ZirconSyntaxTextBox extends Roact.Component<
+	SyntaxTextBoxProps,
+	SyntaxTextBoxState
+> {
+	private readonly focusMaid = new Maid();
+	private readonly maid = new Maid();
+	private readonly ref = Roact.createRef<TextBox>();
 
-	public constructor(props: SyntaxTextBoxProps) {
+	constructor(props: SyntaxTextBoxProps) {
 		super(props);
 		this.state = {
-			source: props.Source,
 			cursorPosition: 0,
+			source: props.Source,
 			virtualCursorPosition: 0,
 		};
 	}
 
-	public didMount() {
+	public didMount(): void {
 		const textBox = this.ref.getValue();
 		if (textBox) {
 			this.maid.GiveTask(
-				UserInputService.InputEnded.Connect((io, gameProcessed) => {
+				UserInputService.InputEnded.Connect(io => {
 					if (this.state.focused) {
 						if (io.KeyCode === Enum.KeyCode.Up) {
 							this.props.OnHistoryTraversal?.(HistoryTraversalDirection.Back);
@@ -98,14 +90,14 @@ export default class ZirconSyntaxTextBox extends Roact.Component<SyntaxTextBoxPr
 		}
 	}
 
-	public willUnmount() {
+	public willUnmount(): void {
 		this.maid.DoCleaning();
 		this.focusMaid.DoCleaning();
 	}
 
-	public didUpdate(prevProps: SyntaxTextBoxProps) {
+	public didUpdate(previousProps: SyntaxTextBoxProps): void {
 		const textBox = this.ref.getValue();
-		if (prevProps.Focused !== this.props.Focused && this.props.AutoFocus && textBox) {
+		if (previousProps.Focused !== this.props.Focused && this.props.AutoFocus && textBox) {
 			if (this.props.Focused) {
 				textBox.CaptureFocus();
 			} else {
@@ -113,9 +105,11 @@ export default class ZirconSyntaxTextBox extends Roact.Component<SyntaxTextBoxPr
 			}
 		}
 
-		if (this.props.Source !== prevProps.Source) {
+		if (this.props.Source !== previousProps.Source) {
 			this.setState({ source: this.props.Source });
-			task.defer(() => this.setState({ cursorPosition: this.props.Source.size() + 1 }));
+			task.defer(() => {
+				this.setState({ cursorPosition: this.props.Source.size() + 1 });
+			});
 		}
 	}
 
@@ -159,10 +153,14 @@ export default class ZirconSyntaxTextBox extends Roact.Component<SyntaxTextBoxPr
 								Size={new UDim2(1, 0, 1, 0)}
 								Text={this.state.source}
 								Change={{
-									CursorPosition: rbx =>
-										this.setState({ virtualCursorPosition: rbx.CursorPosition }),
-									Text: rbx =>
-										this.setState({ source: rbx.Text.gsub("\t", " ")[0] }),
+									CursorPosition: rbx => {
+										this.setState({
+											virtualCursorPosition: rbx.CursorPosition,
+										});
+									},
+									Text: rbx => {
+										this.setState({ source: rbx.Text.gsub("\t", " ")[0] });
+									},
 								}}
 								TextTransparency={0.75}
 								Event={{
@@ -170,9 +168,10 @@ export default class ZirconSyntaxTextBox extends Roact.Component<SyntaxTextBoxPr
 										this.setState({ focused: true, source: "" });
 
 										this.focusMaid.GiveTask(
-											UserInputService.InputBegan.Connect((io) => {
+											UserInputService.InputBegan.Connect(io => {
 												if (
-													io.UserInputState === Enum.UserInputState.Begin &&
+													io.UserInputState ===
+														Enum.UserInputState.Begin &&
 													io.UserInputType === Enum.UserInputType.Keyboard
 												) {
 													if (
@@ -201,16 +200,19 @@ export default class ZirconSyntaxTextBox extends Roact.Component<SyntaxTextBoxPr
 
 										if (enterPressed && this.props.RefocusOnSubmit) {
 											// Needs to be deferred, otherwise roblox keeps the enter key there.
-											task.defer(() => textBox.CaptureFocus());
+											task.defer(() => {
+												textBox.CaptureFocus();
+											});
 										}
 
 										this.focusMaid.DoCleaning();
 									},
 									InputChanged: (rbx, io) => {
-										if (io.UserInputType === Enum.UserInputType.Keyboard) {
-											if (this.props.CancelKeyCodes?.includes(io.KeyCode)) {
-												rbx.ReleaseFocus();
-											}
+										if (
+											io.UserInputType === Enum.UserInputType.Keyboard &&
+											this.props.CancelKeyCodes?.includes(io.KeyCode)
+										) {
+											rbx.ReleaseFocus();
 										}
 									},
 								}}
@@ -234,7 +236,9 @@ export default class ZirconSyntaxTextBox extends Roact.Component<SyntaxTextBoxPr
 									Size={new UDim2(0, 20, 0, 20)}
 									Position={new UDim2(1, -25, 0, 0)}
 									Event={{
-										MouseButton1Click: () => this.setState({ source: "" }),
+										MouseButton1Click: () => {
+											this.setState({ source: "" });
+										},
 									}}
 								>
 									<uilistlayout

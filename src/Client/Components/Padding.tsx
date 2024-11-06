@@ -1,12 +1,20 @@
-type PaddingResult = Pick<UIPadding, "PaddingTop" | "PaddingBottom" | "PaddingLeft" | "PaddingRight">;
+import Roact from "@rbxts/roact";
+
+type PaddingResult = Pick<
+	UIPadding,
+	"PaddingBottom" | "PaddingLeft" | "PaddingRight" | "PaddingTop"
+>;
 type PaddingOffset = {
 	[P in keyof PaddingResult]: number;
 };
 
-type PaddingAxisOffset = { PaddingHorizontal?: number; PaddingVertical?: number };
+interface PaddingAxisOffset {
+	PaddingHorizontal?: number;
+	PaddingVertical?: number;
+}
 
-export type WidgetPadding = Partial<PaddingOffset> | PaddingAxisOffset | number;
-export type WidgetAxisPadding = PaddingAxisOffset | number;
+export type WidgetPadding = number | PaddingAxisOffset | Partial<PaddingOffset>;
+export type WidgetAxisPadding = number | PaddingAxisOffset;
 
 export function CalculatePaddingUDim2(padding: WidgetAxisPadding): UDim2 {
 	if (typeIs(padding, "number")) {
@@ -19,6 +27,7 @@ export function CalculatePaddingUDim2(padding: WidgetAxisPadding): UDim2 {
 	throw `Invalid argument to CalculatePadding`;
 }
 
+// eslint-disable-next-line max-lines-per-function -- a 33
 export function CalculatePadding(padding: WidgetPadding): Partial<PaddingResult> {
 	if (typeIs(padding, "number")) {
 		return {
@@ -41,7 +50,7 @@ export function CalculatePadding(padding: WidgetPadding): Partial<PaddingResult>
 		"PaddingTop" in padding ||
 		"PaddingBottom" in padding
 	) {
-		const { PaddingBottom = 0, PaddingTop = 0, PaddingLeft = 0, PaddingRight = 0 } = padding;
+		const { PaddingBottom = 0, PaddingLeft = 0, PaddingRight = 0, PaddingTop = 0 } = padding;
 		return {
 			PaddingBottom: new UDim(0, PaddingBottom),
 			PaddingLeft: new UDim(0, PaddingLeft),
@@ -58,22 +67,20 @@ export function CalculatePadding(padding: WidgetPadding): Partial<PaddingResult>
 	};
 }
 
-import Roact from "@rbxts/roact";
-
 interface Padding {
-	Left?: number;
-	Top?: number;
-	Right?: number;
 	Bottom?: number;
-	Vertical?: number;
 	Horizontal?: number;
+	Left?: number;
+	Right?: number;
+	Top?: number;
+	Vertical?: number;
 }
 export interface PaddingProps {
 	Padding: Padding;
 }
 export default function Padding({
-	Padding: { Left = 0, Right = 0, Top = 0, Bottom = 0, Vertical = 0, Horizontal = 0 },
-}: PaddingProps) {
+	Padding: { Bottom = 0, Horizontal = 0, Left = 0, Right = 0, Top = 0, Vertical = 0 },
+}: PaddingProps): Roact.Element {
 	return (
 		<uipadding
 			PaddingBottom={new UDim(0, Bottom + Vertical)}

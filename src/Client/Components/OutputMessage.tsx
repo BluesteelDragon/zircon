@@ -1,52 +1,47 @@
-/* eslint-disable roblox-ts/lua-truthiness */
+/* eslint-disable max-lines -- we'll work it out */
 import Roact from "@rbxts/roact";
 import { LocalizationService } from "@rbxts/services";
-import {
-	ZrOutputMessage,
-	ZirconLogMessage,
-	ZirconMessageType,
-	ZirconLogLevel,
-	ZirconContext,
-	ZrErrorMessage,
-	ZirconLogError,
+import { ZrRichTextHighlighter } from "@rbxts/zirconium/out/Ast";
+
+import { formatParse, formatTokens } from "Client/Format";
+
+import type {
 	ConsoleMessage,
+	ZirconLogError,
+	ZirconLogMessage,
 	ZirconStructuredLogMessage,
+	ZrErrorMessage,
+	ZrOutputMessage,
 } from "../../Client/Types";
+import { ZirconContext, ZirconLogLevel, ZirconMessageType } from "../../Client/Types";
+import type { ZirconThemeDefinition } from "../../Client/UIKit/ThemeContext";
 import ThemeContext, {
 	getRichTextColor3,
-	ZirconThemeDefinition,
 	getThemeRichTextColor,
 	italicize,
 } from "../../Client/UIKit/ThemeContext";
-import { ZirconDebugInformation, ZirconNetworkMessageType } from "../../Shared/Remotes";
-import { ZrRichTextHighlighter } from "@rbxts/zirconium/out/Ast";
-import { formatParse, formatTokens } from "Client/Format";
-import { LogLevel } from "@rbxts/log";
-import { MessageTemplateParser } from "@rbxts/message-templates";
-import { ZirconStructuredMessageTemplateRenderer } from "Client/Format/ZirconStructuredMessageTemplate";
+import type { ZirconDebugInformation } from "../../Shared/remotes";
+import { ZirconNetworkMessageType } from "../../Shared/remotes";
 import { StructuredLogMessage } from "./StructuredLogMessage";
 
-function sanitise(input: string) {
-	return input.gsub("[<>]", {
-		">": "&gt;",
-		"<": "&lt;",
-	})[0];
-}
-
 interface OutputMessageProps {
-	Message: ZrOutputMessage | ZirconLogMessage | ZrOutputMessage | ZirconStructuredLogMessage;
+	Message: ZirconLogMessage | ZirconStructuredLogMessage | ZrOutputMessage;
 	ShowTags?: boolean;
 }
-function OutputMessage(props: OutputMessageProps) {
+// eslint-disable-next-line max-lines-per-function -- a 50
+function OutputMessage(props: OutputMessageProps): Roact.Element {
 	const output = props.Message;
 
 	if (output.type === ZirconMessageType.StructuredLog) {
-		return <StructuredLogMessage LogEvent={output.data} Context={output.context} DetailedView />;
+		return (
+			<StructuredLogMessage LogEvent={output.data} Context={output.context} DetailedView />
+		);
 	}
 
 	return (
 		<ThemeContext.Consumer
-			render={(theme) => {
+			// eslint-disable-next-line max-lines-per-function -- a 51
+			render={theme => {
 				const messages = new Array<string>();
 
 				if (output.type === ZirconMessageType.ZirconiumOutput) {
@@ -60,9 +55,9 @@ function OutputMessage(props: OutputMessageProps) {
 								LocalizationService.SystemLocaleId,
 							)}]`,
 						),
+						message.message,
 					);
-					messages.push(message.message);
-				} else if (output.type === ZirconMessageType.ZirconLogOutputMesage) {
+				} else if (output.type === ZirconMessageType.ZirconLogOutputMessage) {
 					const { message } = output;
 					messages.push(
 						getRichTextColor3(
@@ -76,24 +71,40 @@ function OutputMessage(props: OutputMessageProps) {
 					);
 
 					const text =
-						(message.data.Variables?.size() ?? 0) > 0
+						(message.data.Variables.size() ?? 0) > 0
 							? formatTokens(formatParse(message.message), message.data.Variables)
 							: message.message;
 
-					if (message.level === ZirconLogLevel.Info) {
-						messages.push(getRichTextColor3(theme, "Cyan", "INFO "));
-						messages.push(getRichTextColor3(theme, "White", text));
-					} else if (message.level === ZirconLogLevel.Debug) {
-						messages.push(getRichTextColor3(theme, "Green", "DEBUG"));
-						messages.push(getRichTextColor3(theme, "White", text));
-					} else if (message.level === ZirconLogLevel.Warning) {
-						messages.push(getRichTextColor3(theme, "Yellow", "WARN "));
-						messages.push(getRichTextColor3(theme, "White", text));
+					switch (message.level) {
+						case ZirconLogLevel.Info: {
+							messages.push(
+								getRichTextColor3(theme, "Cyan", "INFO "),
+								getRichTextColor3(theme, "White", text),
+							);
+							break;
+						}
+						case ZirconLogLevel.Debug: {
+							messages.push(
+								getRichTextColor3(theme, "Green", "DEBUG"),
+								getRichTextColor3(theme, "White", text),
+							);
+							break;
+						}
+						case ZirconLogLevel.Warning: {
+							messages.push(
+								getRichTextColor3(theme, "Yellow", "WARN "),
+								getRichTextColor3(theme, "White", text),
+							);
+							break;
+						}
+						// No default
 					}
 
 					if (props.ShowTags && message.tag) {
 						// const toAppend = padEnd(message.tag ?? "", 20, " ");
-						messages.push("- " + italicize(getRichTextColor3(theme, "Grey", message.tag)));
+						messages.push(
+							"- " + italicize(getRichTextColor3(theme, "Grey", message.tag)),
+						);
 					}
 				}
 
@@ -131,12 +142,17 @@ function OutputMessage(props: OutputMessageProps) {
 	);
 }
 
-function OutputError(props: { Message: ZrErrorMessage | ZirconLogError; ShowTags: boolean }) {
+// eslint-disable-next-line max-lines-per-function -- a 52
+function OutputError(props: {
+	Message: ZirconLogError | ZrErrorMessage;
+	ShowTags: boolean;
+}): Roact.Element {
 	const output = props.Message;
 
 	return (
 		<ThemeContext.Consumer
-			render={(theme) => {
+			// eslint-disable-next-line max-lines-per-function -- a 53
+			render={theme => {
 				const messages = new Array<string>();
 
 				if (output.type === ZirconMessageType.ZirconiumError) {
@@ -161,11 +177,15 @@ function OutputError(props: { Message: ZrErrorMessage | ZirconLogError; ShowTags
 								tostring(zrError.source[0]),
 							)}:${getRichTextColor3(theme, "Yellow", tostring(zrError.source[1]))}`;
 						}
+
 						messages.push(getRichTextColor3(theme, "White", inner + " -"));
 					}
-					messages.push(getRichTextColor3(theme, "Red", "error"));
-					messages.push(getRichTextColor3(theme, "Grey", `ZR${"%.4d".format(zrError.code)}:`));
-					messages.push(getRichTextColor3(theme, "White", zrError.message));
+
+					messages.push(
+						getRichTextColor3(theme, "Red", "error"),
+						getRichTextColor3(theme, "Grey", `ZR${"%.4d".format(zrError.code)}:`),
+						getRichTextColor3(theme, "White", zrError.message),
+					);
 				} else if (output.type === ZirconMessageType.ZirconLogErrorMessage) {
 					const { error: zrError } = output;
 					messages.push(
@@ -180,16 +200,22 @@ function OutputError(props: { Message: ZrErrorMessage | ZirconLogError; ShowTags
 					);
 
 					if (zrError.level === ZirconLogLevel.Error) {
-						messages.push(getRichTextColor3(theme, "Red", "ERROR"));
-						messages.push(getRichTextColor3(theme, "Yellow", zrError.message));
+						messages.push(
+							getRichTextColor3(theme, "Red", "ERROR"),
+							getRichTextColor3(theme, "Yellow", zrError.message),
+						);
 					} else if (zrError.level === ZirconLogLevel.Wtf) {
-						messages.push(getRichTextColor3(theme, "Red", "FAIL "));
-						messages.push(getRichTextColor3(theme, "Yellow", zrError.message));
+						messages.push(
+							getRichTextColor3(theme, "Red", "FAIL "),
+							getRichTextColor3(theme, "Yellow", zrError.message),
+						);
 					}
 
 					if (props.ShowTags && zrError.tag) {
 						// const toAppend = padEnd(zrError.tag ?? "", 20, " ");
-						messages.push("- " + italicize(getRichTextColor3(theme, "Grey", zrError.tag)));
+						messages.push(
+							"- " + italicize(getRichTextColor3(theme, "Grey", zrError.tag)),
+						);
 					}
 				}
 
@@ -227,12 +253,24 @@ function OutputError(props: { Message: ZrErrorMessage | ZirconLogError; ShowTags
 	);
 }
 
-function ErrorLine({ TokenInfo, Highlight = true }: { TokenInfo: ZirconDebugInformation; Highlight?: boolean }) {
+// eslint-disable-next-line max-lines-per-function -- a 54
+function ErrorLine({
+	Highlight = true,
+	TokenInfo,
+}: {
+	Highlight?: boolean;
+	TokenInfo: ZirconDebugInformation;
+}): Roact.Element {
 	return (
 		<ThemeContext.Consumer
-			render={(theme) => {
+			// eslint-disable-next-line max-lines-per-function -- a 55
+			render={theme => {
 				return (
-					<frame Size={new UDim2(1, 0, 0, 30)} Position={new UDim2(0.1, 0, 0, 0)} BackgroundTransparency={1}>
+					<frame
+						Size={new UDim2(1, 0, 0, 30)}
+						Position={new UDim2(0.1, 0, 0, 0)}
+						BackgroundTransparency={1}
+					>
 						<textlabel
 							Text={tostring(TokenInfo.LineAndColumn[0])}
 							TextColor3={theme.PrimaryBackgroundColor3}
@@ -248,7 +286,11 @@ function ErrorLine({ TokenInfo, Highlight = true }: { TokenInfo: ZirconDebugInfo
 							BackgroundTransparency={1}
 							Size={new UDim2(1, 0, 0, 30)}
 							Position={new UDim2(0, 20 + 25, 0, 0)}
-							Text={Highlight ? new ZrRichTextHighlighter(TokenInfo.Line).parse() : TokenInfo.Line}
+							Text={
+								Highlight
+									? new ZrRichTextHighlighter(TokenInfo.Line).parse()
+									: TokenInfo.Line
+							}
 							Font={theme.ConsoleFont}
 							TextSize={20}
 							TextXAlignment="Left"
@@ -272,28 +314,33 @@ function ErrorLine({ TokenInfo, Highlight = true }: { TokenInfo: ZirconDebugInfo
 	);
 }
 
-function getErrorLine(theme: ZirconThemeDefinition, { Line, TokenLinePosition }: ZirconDebugInformation) {
+function getErrorLine(
+	theme: ZirconThemeDefinition,
+	{ Line, TokenLinePosition }: ZirconDebugInformation,
+): { ErrorLine: string } {
 	const red = getThemeRichTextColor(theme, "Red");
 	let resultingString = "";
 	let errorArrows = "";
-	for (let i = 1; i <= Line.size(); i++) {
-		const char = " "; // Line.sub(i, i);
-		if (i === TokenLinePosition[0] && i === TokenLinePosition[1]) {
+	for (let index = 1; index <= Line.size(); index++) {
+		/** Line.sub(i, i);. */
+		const char = " ";
+		if (index === TokenLinePosition[0] && index === TokenLinePosition[1]) {
 			resultingString += '<font color="' + red + '"><u>' + char + "</u></font>";
 			errorArrows += '<font color="' + red + '"><u>^</u></font>';
-		} else if (i === TokenLinePosition[0]) {
+		} else if (index === TokenLinePosition[0]) {
 			resultingString += '<font color="' + red + '"><u>' + char;
 			errorArrows += '<font color="' + red + '"><u>^';
-		} else if (i > TokenLinePosition[0] && i < TokenLinePosition[1]) {
+		} else if (index > TokenLinePosition[0] && index < TokenLinePosition[1]) {
 			resultingString += " ";
 			errorArrows += "^";
-		} else if (i === TokenLinePosition[1]) {
+		} else if (index === TokenLinePosition[1]) {
 			resultingString += char + "</u></font>";
 			errorArrows += char + "^</u></font>";
 		} else {
 			resultingString += char;
 		}
 	}
+
 	return {
 		ErrorLine: resultingString,
 	};
@@ -304,8 +351,8 @@ interface ZirconOutputMessageProps {
 	ShowTags: boolean;
 }
 export default class ZirconOutputMessage extends Roact.PureComponent<ZirconOutputMessageProps> {
-	public render() {
-		const { Message } = this.props;
+	public render(): Roact.Element | undefined {
+		const { Message, ShowTags } = this.props;
 
 		if (
 			Message.type === ZirconMessageType.ZirconiumError ||
@@ -314,28 +361,25 @@ export default class ZirconOutputMessage extends Roact.PureComponent<ZirconOutpu
 			const { error: zrError } = Message;
 
 			if (
-				zrError.type === ZirconNetworkMessageType.ZirconiumParserError ||
-				zrError.type === ZirconNetworkMessageType.ZirconiumRuntimeError
+				(zrError.type === ZirconNetworkMessageType.ZirconiumParserError ||
+					zrError.type === ZirconNetworkMessageType.ZirconiumRuntimeError) &&
+				zrError.debug !== undefined
 			) {
-				if (zrError.debug !== undefined) {
-					return (
-						<Roact.Fragment>
-							<OutputError ShowTags={this.props.ShowTags} Message={Message} />
-							<ErrorLine Highlight TokenInfo={zrError.debug} />
-						</Roact.Fragment>
-					);
-				}
+				return (
+					<Roact.Fragment>
+						<OutputError ShowTags={ShowTags} Message={Message} />
+						<ErrorLine Highlight TokenInfo={zrError.debug} />
+					</Roact.Fragment>
+				);
 			}
 
-			return <OutputError ShowTags={this.props.ShowTags} Message={Message} />;
+			return <OutputError ShowTags={ShowTags} Message={Message} />;
 		} else if (
 			Message.type === ZirconMessageType.ZirconiumOutput ||
-			Message.type === ZirconMessageType.ZirconLogOutputMesage ||
+			Message.type === ZirconMessageType.ZirconLogOutputMessage ||
 			Message.type === ZirconMessageType.StructuredLog
 		) {
-			return <OutputMessage ShowTags={this.props.ShowTags} Message={Message} />;
+			return <OutputMessage ShowTags={ShowTags} Message={Message} />;
 		}
-
-		return undefined;
 	}
 }

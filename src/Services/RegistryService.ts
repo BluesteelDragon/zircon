@@ -9,7 +9,7 @@ import { ZirconEnum } from "Class/ZirconEnum";
 import { ZirconFunction } from "Class/ZirconFunction";
 import { ZirconNamespace } from "Class/ZirconNamespace";
 import { $print } from "rbxts-transform-debug";
-import Remotes, { RemoteId } from "Shared/Remotes";
+import Remotes, { RemoteId } from "Shared/remotes";
 
 import type { ZirconPermissions } from "../Server/Class/ZirconGroup";
 import ZirconUserGroup from "../Server/Class/ZirconGroup";

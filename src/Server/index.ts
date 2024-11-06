@@ -8,7 +8,7 @@ import { ZirconDebug } from "Shared/Debugging";
 import { ZirconLogLevel } from "../Client/Types";
 import { GetCommandService } from "../Services";
 import Lazy from "../Shared/Lazy";
-import Remotes, { RemoteId, ZirconNetworkMessageType } from "../Shared/Remotes";
+import Remotes, { RemoteId, ZirconNetworkMessageType } from "../Shared/remotes";
 import type { ReadonlyZirconPermissionSet } from "./Class/ZirconGroup";
 
 const IsServer = RunService.IsServer();

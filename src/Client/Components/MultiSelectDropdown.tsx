@@ -1,51 +1,57 @@
 import Maid from "@rbxts/maid";
 import Roact from "@rbxts/roact";
 import { Players, UserInputService } from "@rbxts/services";
+
 import ThemeContext from "Client/UIKit/ThemeContext";
 import { setsEqual, toArray } from "Shared/Collections";
-import ZirconIcon, { IconEnum } from "./Icon";
+
+import type { IconEnum } from "./Icon";
+import ZirconIcon from "./Icon";
 import Padding from "./Padding";
 import ScrollView from "./ScrollView";
 
 interface ItemData<T> {
+	Icon?: IconEnum;
 	Id: T;
 	SelectedText?: string;
 	Text: string;
-	Icon?: IconEnum;
 	TextColor3?: Color3;
 }
 
 interface DropdownProps<T = string> {
+	Disabled?: boolean;
 	readonly Items: Array<ItemData<T>>;
+	ItemsSelected?: (item: Set<T>) => void;
 	readonly Label: string;
-	// readonly SelectedItemIndexes?: Set<number>;
+	/** Readonly SelectedItemIndexes?: Set<number>;. */
 	readonly SelectedItemIds?: ReadonlySet<T>;
 	Size?: UDim2;
-	Disabled?: boolean;
-	ItemsSelected?: (item: Set<T>) => void;
 }
 interface DropdownState<T = string> {
 	active: boolean;
-	selectedItems: ReadonlySet<ItemData<T>>;
 	selectedItemIds: ReadonlySet<T>;
+	selectedItems: ReadonlySet<ItemData<T>>;
 }
 
-export default class MultiSelectDropdown<T = string> extends Roact.Component<DropdownProps<T>, DropdownState<T>> {
-	private dropdownRef = Roact.createRef<Frame>();
-	private maid = new Maid();
+export default class MultiSelectDropdown<T = string> extends Roact.Component<
+	DropdownProps<T>,
+	DropdownState<T>
+> {
+	private readonly dropdownRef = Roact.createRef<Frame>();
+	private readonly maid = new Maid();
 
-	private portalPosition: Roact.RoactBinding<UDim2>;
-	private setPortalPosition: Roact.RoactBindingFunc<UDim2>;
+	private readonly portalPosition: Roact.RoactBinding<UDim2>;
+	private readonly portalSizeX: Roact.RoactBinding<number>;
 
-	private portalSizeX: Roact.RoactBinding<number>;
-	private setPortalSizeX: Roact.RoactBindingFunc<number>;
+	private readonly setPortalPosition: Roact.RoactBindingFunc<UDim2>;
+	private readonly setPortalSizeX: Roact.RoactBindingFunc<number>;
 
-	public constructor(props: DropdownProps<T>) {
+	constructor(props: DropdownProps<T>) {
 		super(props);
 		this.state = {
-			selectedItems: new Set(),
-			selectedItemIds: props.SelectedItemIds ?? new Set(),
 			active: false,
+			selectedItemIds: props.SelectedItemIds ?? new Set(),
+			selectedItems: new Set(),
 		};
 
 		this.updateSelectedIndexes();
@@ -54,42 +60,43 @@ export default class MultiSelectDropdown<T = string> extends Roact.Component<Dro
 		[this.portalSizeX, this.setPortalSizeX] = Roact.createBinding(0);
 	}
 
-	private getItemSet() {
+	private getItemSet(): Set<ItemData<T>> {
 		const {
 			props: { Items },
 		} = this;
 		const { selectedItemIds } = this.state;
 
-		const selectedItemSet = Items.reduce((accumulator, current) => {
+		return Items.reduce((accumulator, current) => {
 			if (selectedItemIds.has(current.Id)) {
 				accumulator.add(current);
 			}
+
 			return accumulator;
 		}, new Set<ItemData<T>>());
-
-		return selectedItemSet;
 	}
 
-	private updateSelectedIndexes() {
+	private updateSelectedIndexes(): void {
 		this.setState({ selectedItems: this.getItemSet() });
 	}
 
-	public setPortalPositionRelativeTo(frame: Frame) {
+	public setPortalPositionRelativeTo(frame: Frame): void {
 		const { AbsolutePosition, AbsoluteSize } = frame;
-		this.setPortalPosition(new UDim2(0, AbsolutePosition.X, 0, AbsolutePosition.Y + AbsoluteSize.Y));
+		this.setPortalPosition(
+			new UDim2(0, AbsolutePosition.X, 0, AbsolutePosition.Y + AbsoluteSize.Y),
+		);
 		this.setPortalSizeX(AbsoluteSize.X);
 	}
 
-	public didUpdate(prevProps: DropdownProps<T>) {
-		if (!setsEqual(prevProps.SelectedItemIds, this.props.SelectedItemIds)) {
+	public didUpdate(previousProps: DropdownProps<T>): void {
+		if (!setsEqual(previousProps.SelectedItemIds, this.props.SelectedItemIds)) {
 			this.setState({
-				selectedItems: this.getItemSet(),
 				selectedItemIds: this.props.SelectedItemIds ?? new Set(),
+				selectedItems: this.getItemSet(),
 			});
 		}
 	}
 
-	public didMount() {
+	public didMount(): void {
 		const frame = this.dropdownRef.getValue();
 		if (frame) {
 			this.maid.GiveTask(
@@ -111,83 +118,100 @@ export default class MultiSelectDropdown<T = string> extends Roact.Component<Dro
 		this.setState({ selectedItems: this.getItemSet() });
 	}
 
-	public willUnmount() {
+	public willUnmount(): void {
 		this.maid.DoCleaning();
 	}
 
-	public renderDropdownItems() {
-		const { selectedItems, selectedItemIds } = this.state;
+	// eslint-disable-next-line max-lines-per-function -- a 38
+	public renderDropdownItems(): Array<Roact.Element> {
+		const { selectedItemIds, selectedItems } = this.state;
 
-		return this.props.Items.map((item, idx) => {
+		// eslint-disable-next-line max-lines-per-function -- a 39
+		return this.props.Items.map(item => {
 			return (
 				<ThemeContext.Consumer
-					render={(theme) => (
-						<frame
-							Size={new UDim2(1, 0, 0, 30)}
-							BackgroundColor3={
-								selectedItemIds.has(item.Id)
-									? theme.PrimarySelectColor3
-									: theme.SecondaryBackgroundColor3
-							}
-							BorderSizePixel={1}
-							BorderColor3={theme.PrimaryBackgroundColor3}
-						>
-							<frame Size={new UDim2(1, 0, 1, 0)} BackgroundTransparency={1}>
-								<Padding Padding={{ Right: 20, Horizontal: 5 }} />
-								{selectedItemIds.has(item.Id) && (
-									<ZirconIcon Icon="CheckmarkHeavy" Position={new UDim2(0, 0, 0.5, -8)} />
-								)}
-								<textbutton
-									Font={theme.Font}
-									TextXAlignment="Left"
-									TextSize={15}
-									BackgroundTransparency={1}
-									Size={new UDim2(1, 0, 1, 0)}
-									Position={new UDim2(0, 20, 0, 0)}
-									TextColor3={theme.PrimaryTextColor3}
-									Text={item.Text}
-									Event={{
-										MouseButton1Click: () => {
-											const selectedSet = new Set<ItemData<T>>();
-											const newSet = new Set<T>();
-											for (const existingItem of this.state.selectedItems) {
-												newSet.add(existingItem.Id);
-												selectedSet.add(existingItem);
-											}
+					// eslint-disable-next-line max-lines-per-function -- a 40
+					render={theme => {
+						return (
+							<frame
+								Size={new UDim2(1, 0, 0, 30)}
+								BackgroundColor3={
+									selectedItemIds.has(item.Id)
+										? theme.PrimarySelectColor3
+										: theme.SecondaryBackgroundColor3
+								}
+								BorderSizePixel={1}
+								BorderColor3={theme.PrimaryBackgroundColor3}
+							>
+								<frame Size={new UDim2(1, 0, 1, 0)} BackgroundTransparency={1}>
+									<Padding Padding={{ Horizontal: 5, Right: 20 }} />
+									{selectedItemIds.has(item.Id) && (
+										<ZirconIcon
+											Icon="CheckmarkHeavy"
+											Position={new UDim2(0, 0, 0.5, -8)}
+										/>
+									)}
+									<textbutton
+										Font={theme.Font}
+										TextXAlignment="Left"
+										TextSize={15}
+										BackgroundTransparency={1}
+										Size={new UDim2(1, 0, 1, 0)}
+										Position={new UDim2(0, 20, 0, 0)}
+										TextColor3={theme.PrimaryTextColor3}
+										Text={item.Text}
+										Event={{
+											// eslint-disable-next-line max-lines-per-function -- a 41
+											MouseButton1Click: () => {
+												const selectedSet = new Set<ItemData<T>>();
+												const newSet = new Set<T>();
+												for (const existingItem of selectedItems) {
+													newSet.add(existingItem.Id);
+													selectedSet.add(existingItem);
+												}
 
-											if (newSet.has(item.Id)) {
-												newSet.delete(item.Id);
-												selectedSet.delete(item);
-											} else {
-												newSet.add(item.Id);
-												selectedSet.add(item);
-											}
+												if (newSet.has(item.Id)) {
+													newSet.delete(item.Id);
+													selectedSet.delete(item);
+												} else {
+													newSet.add(item.Id);
+													selectedSet.add(item);
+												}
 
-											if (UserInputService.IsKeyDown(Enum.KeyCode.LeftControl)) {
-												newSet.clear();
-												selectedSet.clear();
-												newSet.add(item.Id);
-												selectedSet.add(item);
-											}
+												if (
+													UserInputService.IsKeyDown(
+														Enum.KeyCode.LeftControl,
+													)
+												) {
+													newSet.clear();
+													selectedSet.clear();
+													newSet.add(item.Id);
+													selectedSet.add(item);
+												}
 
-											this.setState({ selectedItems: selectedSet, selectedItemIds: newSet });
-											if (this.props.ItemsSelected !== undefined) {
-												this.props.ItemsSelected(newSet);
-											}
-										},
-									}}
-								/>
+												this.setState({
+													selectedItemIds: newSet,
+													selectedItems: selectedSet,
+												});
+												if (this.props.ItemsSelected !== undefined) {
+													this.props.ItemsSelected(newSet);
+												}
+											},
+										}}
+									/>
+								</frame>
 							</frame>
-						</frame>
-					)}
+						);
+					}}
 				/>
 			);
 		});
 	}
 
-	public renderDropdown() {
+	// eslint-disable-next-line max-lines-per-function -- a 43
+	public renderDropdown(): Roact.Element {
 		const { active } = this.state;
-		if (active === false) {
+		if (!active) {
 			return <Roact.Fragment />;
 		}
 
@@ -195,25 +219,30 @@ export default class MultiSelectDropdown<T = string> extends Roact.Component<Dro
 
 		const portal = (
 			<ThemeContext.Consumer
-				render={(theme) => (
-					<frame
-						Key="DropdownPortal"
-						// BackgroundTransparency={1}
-						BackgroundColor3={theme.PrimaryBackgroundColor3}
-						BorderColor3={theme.SecondaryBackgroundColor3}
-						Position={this.portalPosition}
-						Size={this.portalSizeX.map((x) => {
-							return new UDim2(0, x, 0, activeSizeY);
-						})}
-						Event={{ MouseLeave: () => this.setState({ active: false }) }}
-					>
-						<ScrollView>{this.renderDropdownItems()}</ScrollView>
-					</frame>
-				)}
+				render={theme => {
+					return (
+						<frame
+							Key="DropdownPortal"
+							// BackgroundTransparency={1}
+							BackgroundColor3={theme.PrimaryBackgroundColor3}
+							BorderColor3={theme.SecondaryBackgroundColor3}
+							Position={this.portalPosition}
+							Size={this.portalSizeX.map(x => new UDim2(0, x, 0, activeSizeY))}
+							Event={{
+								MouseLeave: () => {
+									this.setState({ active: false });
+								},
+							}}
+						>
+							<ScrollView>{this.renderDropdownItems()}</ScrollView>
+						</frame>
+					);
+				}}
 			/>
 		);
 
 		return (
+			// eslint-disable-next-line ts/no-non-null-assertion -- Will exist when used.
 			<Roact.Portal target={Players.LocalPlayer.FindFirstChildOfClass("PlayerGui")!}>
 				<screengui DisplayOrder={10500} Key="HostedDropdownPortal">
 					{portal}
@@ -222,49 +251,69 @@ export default class MultiSelectDropdown<T = string> extends Roact.Component<Dro
 		);
 	}
 
-	public render() {
-		const { Items, Disabled, Size = new UDim2(0, 150, 0, 30) } = this.props;
-		const { selectedItems } = this.state;
+	// eslint-disable-next-line max-lines-per-function -- a 44
+	public render(): Roact.Element {
+		const { Disabled, Items, Label, Size = new UDim2(0, 150, 0, 30) } = this.props;
+		const { active, selectedItems } = this.state;
 
 		const values = toArray(selectedItems);
-		const fullString = values.map((f) => f.SelectedText ?? f.Text).join(", ");
 
 		return (
 			<ThemeContext.Consumer
-				render={(theme) => (
-					<frame
-						BackgroundColor3={theme.SecondaryBackgroundColor3}
-						BorderColor3={theme.PrimaryBackgroundColor3}
-						Size={Size}
-						Ref={this.dropdownRef}
-					>
-						<frame Key="Content" Size={new UDim2(1, -25, 1, 0)} BackgroundTransparency={1}>
-							<Padding Padding={{ Horizontal: 10 }} />
-							<textbutton
-								Size={new UDim2(1, 0, 1, 0)}
+				// eslint-disable-next-line max-lines-per-function -- a 45
+				render={theme => {
+					return (
+						<frame
+							BackgroundColor3={theme.SecondaryBackgroundColor3}
+							BorderColor3={theme.PrimaryBackgroundColor3}
+							Size={Size}
+							Ref={this.dropdownRef}
+						>
+							<frame
+								Key="Content"
+								Size={new UDim2(1, -25, 1, 0)}
 								BackgroundTransparency={1}
-								Font={theme.Font}
-								TextSize={15}
-								TextXAlignment="Left"
-								TextColor3={Disabled ? theme.PrimaryDisabledColor3 : theme.PrimaryTextColor3}
-								// TextStrokeTransparency={0.5}
-								Text={this.props.Label.format(values.size())}
-								Event={{
-									MouseButton1Click: () => !Disabled && this.setState({ active: !this.state.active }),
-								}}
+							>
+								<Padding Padding={{ Horizontal: 10 }} />
+								<textbutton
+									Size={new UDim2(1, 0, 1, 0)}
+									BackgroundTransparency={1}
+									Font={theme.Font}
+									TextSize={15}
+									TextXAlignment="Left"
+									TextColor3={
+										Disabled
+											? theme.PrimaryDisabledColor3
+											: theme.PrimaryTextColor3
+									}
+									// TextStrokeTransparency={0.5}
+									Text={Label.format(values.size())}
+									Event={{
+										MouseButton1Click: () => {
+											return (
+												!Disabled &&
+												this.setState({ active: !this.state.active })
+											);
+										},
+									}}
+								/>
+							</frame>
+							<imagelabel
+								Image="rbxassetid://2657038128"
+								ImageColor3={
+									Disabled
+										? theme.PrimaryDisabledColor3
+										: Color3.fromRGB(255, 255, 255)
+								}
+								Position={new UDim2(1, -25, 0, 5)}
+								BackgroundTransparency={1}
+								Rotation={active ? 0 : 180}
+								Size={new UDim2(0, 20, 0, 20)}
 							/>
+							{this.renderDropdown()}
 						</frame>
-						<imagelabel
-							Image="rbxassetid://2657038128"
-							ImageColor3={Disabled ? theme.PrimaryDisabledColor3 : Color3.fromRGB(255, 255, 255)}
-							Position={new UDim2(1, -25, 0, 5)}
-							BackgroundTransparency={1}
-							Rotation={this.state.active ? 0 : 180}
-							Size={new UDim2(0, 20, 0, 20)}
-						/>
-						{this.renderDropdown()}
-					</frame>
-				)}
+					);
+				}}
 			/>
 		);
 	}

@@ -14,6 +14,7 @@ function icon(x: number, y: number): IconDefinition {
 	});
 }
 
+// eslint-disable-next-line sonar/no-identical-functions -- Seemingly a dropped concept?
 function tintedIcon(x: number, y: number, _defaultTint: Color3): IconDefinition {
 	return identity<IconDefinition>({
 		Offset: new Vector2(-16 + 16 * x, -16 + 16 * y),
@@ -24,7 +25,7 @@ const IconsV2 = {
 	ActionAdd: identity<IconDefinition>({ Offset: new Vector2(16 * 3, 16 * 2) }),
 	ActionContextClient: identity<IconDefinition>({ Offset: new Vector2(16 * 2, 16 * 3) }),
 	ActionContextServer: identity<IconDefinition>({ Offset: new Vector2(16 * 3, 16 * 3) }),
-	ActionElipsisMenu: identity<IconDefinition>({ Offset: new Vector2(16, 16 * 2) }),
+	ActionEllipsisMenu: identity<IconDefinition>({ Offset: new Vector2(16, 16 * 2) }),
 	ActionExecute: identity<IconDefinition>({ Offset: new Vector2(0, 16 * 2) }),
 	ActionTrash: identity<IconDefinition>({ Offset: new Vector2(16 * 2, 16 * 2) }),
 	Checkmark: identity<IconDefinition>({ Offset: new Vector2(16 * 5, 16 * 2) }),

@@ -65,7 +65,7 @@ export function zirconTypeId(value: ZrUndefined | ZrValue): string {
 	} else if (zirconTypeIs(value, "range")) {
 		return `range <${value.GetMin()} .. ${value.GetMax()}>`;
 	} else if (zirconTypeIs(value, "enum")) {
-		return `Enum '${value.getEnumName()}'`
+		return `Enum '${value.getEnumName()}'`;
 	} else if (zirconTypeIs(value, "EnumItem")) {
 		return `EnumItem '${value.getEnum().getEnumName()}::${value.getName()}'`;
 	} else if (zirconTypeIs(value, "function")) {

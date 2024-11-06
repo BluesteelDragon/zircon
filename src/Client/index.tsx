@@ -8,10 +8,10 @@ import { $dbg, $package } from "rbxts-transform-debug";
 
 import { GetCommandService } from "../Services";
 import Lazy from "../Shared/Lazy";
-import type { ZirconiumParserErrorMessage, ZirconiumRuntimeErrorMessage } from "../Shared/Remotes";
-import Remotes, { RemoteId, ZirconNetworkMessageType } from "../Shared/Remotes";
+import type { ZirconiumParserErrorMessage, ZirconiumRuntimeErrorMessage } from "../Shared/remotes";
+import Remotes, { RemoteId, ZirconNetworkMessageType } from "../Shared/remotes";
 import ZirconClientStore from "./BuiltInConsole/Store";
-import { ConsoleActionName } from "./BuiltInConsole/Store/_reducers/ConsoleReducer";
+import { ConsoleActionName } from "./BuiltInConsole/Store/_reducers/console-reducer";
 import ZirconDockedConsole from "./BuiltInConsole/UI/DockedConsole";
 import ZirconTopBar from "./BuiltInConsole/UI/TopbarMenu";
 import { ZirconContext, ZirconLogLevel, ZirconMessageType } from "./Types";

@@ -1,12 +1,14 @@
 import Roact from "@rbxts/roact";
+
 import ThemeContext from "Client/UIKit/ThemeContext";
+
 import ZirconIcon from "./Icon";
 import Padding from "./Padding";
 
 interface SearchTextBoxProps {
-	Value?: string;
 	Size?: UDim2;
 	TextChanged?: (text: string) => void;
+	Value?: string;
 }
 interface SearchTextBoxState {
 	Value?: string;

@@ -1,8 +1,11 @@
 import Rodux from "@rbxts/rodux";
-import consoleReducer, { ConsoleActions, ConsoleReducer } from "./_reducers/ConsoleReducer";
+
+import type { ConsoleActions, ConsoleReducer } from "./_reducers/console-reducer";
+import consoleReducer from "./_reducers/console-reducer";
 
 /**
- * The Rodux client store for Zircon
+ * The Rodux client store for Zircon.
+ *
  * @internal
  */
 const ZirconClientStore = new Rodux.Store<ConsoleReducer, ConsoleActions>(consoleReducer);

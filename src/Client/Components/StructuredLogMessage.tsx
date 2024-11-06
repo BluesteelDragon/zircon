@@ -1,16 +1,19 @@
-import { LogEvent, LogLevel } from "@rbxts/log";
+import Flipper, { Instant } from "@rbxts/flipper";
+import type { LogEvent } from "@rbxts/log";
+import { LogLevel } from "@rbxts/log";
 import { MessageTemplateParser, PlainTextMessageTemplateRenderer } from "@rbxts/message-templates";
 import Roact from "@rbxts/roact";
+import { connect } from "@rbxts/roact-rodux";
+
+import type { ConsoleReducer } from "Client/BuiltInConsole/Store/_reducers/console-reducer";
+import { formatRichText } from "Client/Format";
 import { ZirconStructuredMessageTemplateRenderer } from "Client/Format/ZirconStructuredMessageTemplate";
 import { ZirconContext } from "Client/Types";
 import ThemeContext, { getRichTextColor3, italicize } from "Client/UIKit/ThemeContext";
-import Flipper, { Instant } from "@rbxts/flipper";
-import Padding from "./Padding";
-import { formatRichText } from "Client/Format";
-import { connect } from "@rbxts/roact-rodux";
-import { ConsoleReducer } from "Client/BuiltInConsole/Store/_reducers/ConsoleReducer";
 
-function sanitise(input: string) {
+import Padding from "./Padding";
+
+function sanitize(input: string): string {
 	return input.gsub("[<>]", {
 		"<": "&lt;",
 		">": "&gt;",
@@ -18,45 +21,51 @@ function sanitise(input: string) {
 }
 
 export interface StructuredLogMessageProps extends MappedProps {
-	readonly LogEvent: LogEvent;
 	readonly Context: ZirconContext;
 	readonly DetailedView?: boolean;
+	readonly LogEvent: LogEvent;
 }
 export interface StructuredLogMessageState {
-	viewDetails: boolean;
 	minHeight: number;
+	viewDetails: boolean;
 }
 
-const keys: (keyof LogEvent)[] = ["Template", "Level", "Timestamp"];
+const keys = new Set<keyof LogEvent>(["Level", "Template", "Timestamp"]);
 
-export function getNonEventProps(logEvent: LogEvent) {
+export function getNonEventProps(logEvent: LogEvent): Array<[string, unknown]> {
 	const props = new Array<[string, unknown]>();
 	for (const [key, value] of pairs(logEvent)) {
-		if (!keys.includes(key)) {
+		if (!keys.has(key)) {
 			props.push([key as string, value]);
 		}
 	}
+
 	return props;
 }
 
-class StructuredLogMessageComponent extends Roact.Component<StructuredLogMessageProps, StructuredLogMessageState> {
-	private height: Roact.Binding<number>;
-	private setHeight: Roact.BindingFunction<number>;
-	private heightMotor: Flipper.SingleMotor;
+class StructuredLogMessageComponent extends Roact.Component<
+	StructuredLogMessageProps,
+	StructuredLogMessageState
+> {
+	private readonly height: Roact.Binding<number>;
+	private readonly heightMotor: Flipper.SingleMotor;
+	private readonly setHeight: Roact.BindingFunction<number>;
 
-	public constructor(props: StructuredLogMessageProps) {
+	constructor(props: StructuredLogMessageProps) {
 		super(props);
 		this.state = {
-			viewDetails: false,
 			minHeight: 25,
+			viewDetails: false,
 		};
 
 		[this.height, this.setHeight] = Roact.createBinding(this.state.minHeight);
 		this.heightMotor = new Flipper.SingleMotor(this.height.getValue());
-		this.heightMotor.onStep((value) => this.setHeight(value));
+		this.heightMotor.onStep(value => {
+			this.setHeight(value);
+		});
 	}
 
-	public didMount() {
+	public didMount(): void {
 		const logEvent = this.props.LogEvent;
 		const tokens = MessageTemplateParser.GetTokens(logEvent.Template);
 		const plainText = new PlainTextMessageTemplateRenderer(tokens);
@@ -65,76 +74,115 @@ class StructuredLogMessageComponent extends Roact.Component<StructuredLogMessage
 		this.setState({ minHeight: result.split("\n").size() * 25 });
 	}
 
-	public didUpdate(_: {}, prevState: StructuredLogMessageState) {
-		if (prevState.minHeight !== this.state.minHeight) {
+	public didUpdate(_: object, previousState: StructuredLogMessageState): void {
+		if (previousState.minHeight !== this.state.minHeight) {
 			this.heightMotor.setGoal(new Instant(this.state.minHeight));
 		}
 	}
 
-	public willUnmount() {
+	public willUnmount(): void {
 		this.heightMotor.destroy();
 	}
 
-	public render() {
-		const { LogEvent, Context } = this.props;
-		const { Template, Timestamp, Level, SourceContext } = LogEvent;
+	// eslint-disable-next-line max-lines-per-function -- a 30
+	public render(): Roact.Element {
+		const { Context, logDetailsPaneEnabled, LogEvent, showTagsInOutput } = this.props;
+		const { Level, SourceContext, Template } = LogEvent;
 		const messages = new Array<string>();
 
-		const tokens = MessageTemplateParser.GetTokens(sanitise(Template));
-		const evtProps = getNonEventProps(this.props.LogEvent);
+		const tokens = MessageTemplateParser.GetTokens(sanitize(Template));
+		const eventProps = getNonEventProps(LogEvent);
 
 		return (
 			<ThemeContext.Consumer
-				render={(theme) => {
-					const highlightRenderer = new ZirconStructuredMessageTemplateRenderer(tokens, theme);
+				// eslint-disable-next-line max-lines-per-function -- a 31
+				render={theme => {
+					const highlightRenderer = new ZirconStructuredMessageTemplateRenderer(
+						tokens,
+						theme,
+					);
 					const text = highlightRenderer
 						.Render(LogEvent)
 						.split("\n")
-						.map((f, i) => (i > 0 ? `${" ".rep(6)}${f}` : f))
+						.map((line, index) => (index > 0 ? `${" ".rep(6)}${line}` : line))
 						.join("\n");
 
-					if (Level === LogLevel.Information) {
-						messages.push(getRichTextColor3(theme, "Cyan", "INFO "));
-						messages.push(getRichTextColor3(theme, "White", text));
-					} else if (Level === LogLevel.Debugging) {
-						messages.push(getRichTextColor3(theme, "Green", "DEBUG"));
-						messages.push(getRichTextColor3(theme, "White", text));
-					} else if (Level === LogLevel.Verbose) {
-						messages.push(getRichTextColor3(theme, "Grey", "VERBOSE"));
-						messages.push(getRichTextColor3(theme, "White", text));
-					} else if (Level === LogLevel.Warning) {
-						messages.push(getRichTextColor3(theme, "Yellow", "WARN "));
-						messages.push(getRichTextColor3(theme, "White", text));
-					} else if (Level === LogLevel.Error) {
-						messages.push(getRichTextColor3(theme, "Red", "ERROR "));
-						messages.push(getRichTextColor3(theme, "Yellow", text));
-					} else if (Level === LogLevel.Fatal) {
-						messages.push(getRichTextColor3(theme, "Red", "FATAL "));
-						messages.push(getRichTextColor3(theme, "Red", text));
+					switch (Level) {
+						case LogLevel.Information: {
+							messages.push(
+								getRichTextColor3(theme, "Cyan", "INFO "),
+								getRichTextColor3(theme, "White", text),
+							);
+							break;
+						}
+						case LogLevel.Debugging: {
+							messages.push(
+								getRichTextColor3(theme, "Green", "DEBUG"),
+								getRichTextColor3(theme, "White", text),
+							);
+							break;
+						}
+						case LogLevel.Verbose: {
+							messages.push(
+								getRichTextColor3(theme, "Grey", "VERBOSE"),
+								getRichTextColor3(theme, "White", text),
+							);
+							break;
+						}
+						case LogLevel.Warning: {
+							messages.push(
+								getRichTextColor3(theme, "Yellow", "WARN "),
+								getRichTextColor3(theme, "White", text),
+							);
+							break;
+						}
+						case LogLevel.Error: {
+							messages.push(
+								getRichTextColor3(theme, "Red", "ERROR "),
+								getRichTextColor3(theme, "Yellow", text),
+							);
+							break;
+						}
+						case LogLevel.Fatal: {
+							messages.push(
+								getRichTextColor3(theme, "Red", "FATAL "),
+								getRichTextColor3(theme, "Red", text),
+							);
+							break;
+						}
 					}
 
-					if (SourceContext !== undefined && this.props.showTagsInOutput) {
+					if (SourceContext !== undefined && showTagsInOutput) {
 						messages.push(
-							"- " + italicize(getRichTextColor3(theme, "Grey", tostring(LogEvent.SourceContext))),
+							"- " +
+								italicize(
+									getRichTextColor3(theme, "Grey", tostring(SourceContext)),
+								),
 						);
 					}
 
 					return (
 						<imagebutton
-							AutoButtonColor={this.props.logDetailsPaneEnabled}
-							Size={this.height.map((v) => new UDim2(1, 0, 0, v))}
+							AutoButtonColor={logDetailsPaneEnabled}
+							Size={this.height.map(value => new UDim2(1, 0, 0, value))}
 							BackgroundTransparency={0.5}
 							BackgroundColor3={theme.SecondaryBackgroundColor3}
 							BorderSizePixel={0}
 							Event={{
 								MouseButton1Click: () => {
-									if (!this.props.logDetailsPaneEnabled) return;
+									if (!logDetailsPaneEnabled) {
+										return;
+									}
 
 									if (this.state.viewDetails) {
-										this.heightMotor.setGoal(new Flipper.Spring(this.state.minHeight));
+										this.heightMotor.setGoal(
+											new Flipper.Spring(this.state.minHeight),
+										);
 									} else {
 										this.heightMotor.setGoal(
-											new Flipper.Spring(this.state.minHeight + evtProps.size() * 30 + 5),
+											new Flipper.Spring(
+												this.state.minHeight + eventProps.size() * 30 + 5,
+											),
 										);
 									}
 
@@ -167,12 +215,13 @@ class StructuredLogMessageComponent extends Roact.Component<StructuredLogMessage
 								ClipsDescendants
 								BorderSizePixel={0}
 								BackgroundTransparency={1}
-								Size={this.height.map((v) => new UDim2(1, -35, 0, v - 25))}
+								Size={this.height.map(value => new UDim2(1, -35, 0, value - 25))}
 							>
 								<uilistlayout Padding={new UDim(0, 5)} />
-								{this.props.logDetailsPaneEnabled &&
+								{logDetailsPaneEnabled &&
 									this.state.viewDetails &&
-									evtProps.map(([key, value]) => {
+									// eslint-disable-next-line max-lines-per-function -- a 32
+									eventProps.map(([key, value]) => {
 										return (
 											<frame
 												BackgroundTransparency={1}
@@ -180,7 +229,10 @@ class StructuredLogMessageComponent extends Roact.Component<StructuredLogMessage
 												BorderSizePixel={0}
 											>
 												<Padding Padding={{ Horizontal: 5 }} />
-												<uilistlayout FillDirection="Horizontal" Padding={new UDim(0, 10)} />
+												<uilistlayout
+													FillDirection="Horizontal"
+													Padding={new UDim(0, 10)}
+												/>
 												<textlabel
 													Text={key}
 													Font={theme.ConsoleFont}
@@ -216,11 +268,12 @@ export interface MappedProps {
 	readonly logDetailsPaneEnabled: boolean;
 	readonly showTagsInOutput: boolean;
 }
-const mapStateToProps = (props: ConsoleReducer): MappedProps => {
+
+function mapStateToProps(props: ConsoleReducer): MappedProps {
 	return {
 		logDetailsPaneEnabled: props.logDetailsPaneEnabled,
 		showTagsInOutput: props.showTagsInOutput,
 	};
-};
+}
 
 export const StructuredLogMessage = connect(mapStateToProps)(StructuredLogMessageComponent);

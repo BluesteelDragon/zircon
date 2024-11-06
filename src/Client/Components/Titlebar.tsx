@@ -42,7 +42,7 @@ export default class ZirconTitlebar extends Roact.Component<TitlebarProps> {
 		this.state = {};
 	}
 
-	public didMount() {
+	public didMount(): void {
 		const frameRef = this.frameRef.getValue();
 		const { Draggable } = this.props;
 		if (frameRef && Draggable === true) {

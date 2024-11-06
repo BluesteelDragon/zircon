@@ -6,13 +6,13 @@ import type { ZrRuntimeError } from "@rbxts/zirconium/out/Runtime/Runtime";
 import type ZrScript from "@rbxts/zirconium/out/Runtime/Script";
 
 import ZirconClientStore from "Client/BuiltInConsole/Store";
-import { ConsoleActionName } from "Client/BuiltInConsole/Store/_reducers/ConsoleReducer";
+import { ConsoleActionName } from "Client/BuiltInConsole/Store/_reducers/console-reducer";
 import { ZirconContext, ZirconMessageType } from "Client/Types";
 import { ZirconClient } from "index";
 import { GetCommandService } from "Services";
 import { ZirconDebug } from "Shared/Debugging";
 
-import Remotes, { RemoteId } from "../Shared/Remotes";
+import Remotes, { RemoteId } from "../Shared/remotes";
 import type { ZirconClientRegistryService } from "./ClientRegistryService";
 
 export enum DispatchContext {
