@@ -1,23 +1,28 @@
 import { Players } from "@rbxts/services";
-import ZrScriptContext from "@rbxts/zirconium/out/Runtime/ScriptContext";
-import { toArray } from "../Shared/Collections";
-import ZirconUserGroup, { ZirconPermissions } from "../Server/Class/ZirconGroup";
+import type { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
 import ZrPlayerScriptContext from "@rbxts/zirconium/out/Runtime/PlayerScriptContext";
+import type ZrScriptContext from "@rbxts/zirconium/out/Runtime/ScriptContext";
+
+import type { ZirconConfiguration, ZirconScopedGlobal } from "Class/ZirconConfigurationBuilder";
+import { ZirconConfigurationBuilder } from "Class/ZirconConfigurationBuilder";
+import { ZirconEnum } from "Class/ZirconEnum";
 import { ZirconFunction } from "Class/ZirconFunction";
 import { ZirconNamespace } from "Class/ZirconNamespace";
-import { ZirconEnum } from "Class/ZirconEnum";
-import { ZirconConfiguration, ZirconConfigurationBuilder, ZirconScopedGlobal } from "Class/ZirconConfigurationBuilder";
-import Remotes, { RemoteId } from "Shared/Remotes";
 import { $print } from "rbxts-transform-debug";
+import Remotes, { RemoteId } from "Shared/Remotes";
+
+import type { ZirconPermissions } from "../Server/Class/ZirconGroup";
+import ZirconUserGroup from "../Server/Class/ZirconGroup";
+import { toArray } from "../Shared/Collections";
 
 export namespace ZirconRegistryService {
 	const contexts = new Map<Player, Array<ZrScriptContext>>();
 	const groups = new Map<string, ZirconUserGroup>();
 	const playerGroupMap = new Map<Player, Array<ZirconUserGroup>>();
 	const unregisteredTypes = new Array<ZirconScopedGlobal>();
-	let initalized = false;
+	let initialized = false;
 
-	function* playerFunctionIterator(player: Player) {
+	function* playerFunctionIterator(player: Player): Generator<[string, ZrValue], boolean> {
 		const groups = playerGroupMap.get(player);
 		if (!groups) {
 			return false;
@@ -27,9 +32,11 @@ export namespace ZirconRegistryService {
 			for (const value of group._getFunctions()) {
 				yield value;
 			}
+
 			for (const value of group._getNamespaces()) {
 				yield value;
 			}
+
 			for (const value of group._getEnums()) {
 				yield value;
 			}
@@ -39,7 +46,7 @@ export namespace ZirconRegistryService {
 	}
 
 	/** @internal */
-	export function GetScriptContextsForPlayer(player: Player) {
+	export function GetScriptContextsForPlayer(player: Player): Array<ZrScriptContext> {
 		let contextArray: Array<ZrScriptContext>;
 		if (!contexts.has(player)) {
 			contextArray = [];
@@ -47,6 +54,7 @@ export namespace ZirconRegistryService {
 			for (const [name, fun] of playerFunctionIterator(player)) {
 				context.registerGlobal(name, fun);
 			}
+
 			contextArray.push(context);
 			contexts.set(player, contextArray);
 		} else {
@@ -57,13 +65,18 @@ export namespace ZirconRegistryService {
 	}
 
 	/**
-	 * Registers a function in the global namespace to the specified group(s)
-	 * @param func The function to register
-	 * @param groups The groups
-	 * @deprecated Use `ZirconFunctionBuilder` + the ZirconConfigurationBuilder API
+	 * Registers a function in the global namespace to the specified group(s).
+	 *
+	 * @deprecated Use `ZirconFunctionBuilder` + the ZirconConfigurationBuilder
+	 *   API.
+	 * @param func - The function to register.
+	 * @param groupIds - The groups.
 	 */
-	export function RegisterFunction(func: ZirconFunction<any, any>, groupIds: readonly string[]) {
-		if (!initalized) {
+	export function RegisterFunction(
+		func: ZirconFunction<any, any>,
+		groupIds: ReadonlyArray<string>,
+	): void {
+		if (!initialized) {
 			unregisteredTypes.push([func, groupIds]);
 		} else {
 			$print("registered", func, "after init");
@@ -74,13 +87,18 @@ export namespace ZirconRegistryService {
 	}
 
 	/**
-	 * Registers a namespace to the specified group(s)
-	 * @param namespace The namespace
-	 * @param groups The groups to register it to
-	 * @deprecated Use `ZirconNamespaceBuilder` + the ZirconConfigurationBuilder API
+	 * Registers a namespace to the specified group(s).
+	 *
+	 * @deprecated Use `ZirconNamespaceBuilder` + the ZirconConfigurationBuilder
+	 *   API.
+	 * @param namespace - The namespace to add to the groups.
+	 * @param groupIds - The groups to register it to.
 	 */
-	export function RegisterNamespace(namespace: ZirconNamespace, groupIds: readonly string[]) {
-		if (!initalized) {
+	export function RegisterNamespace(
+		namespace: ZirconNamespace,
+		groupIds: ReadonlyArray<string>,
+	): void {
+		if (!initialized) {
 			unregisteredTypes.push([namespace, groupIds]);
 		} else {
 			$print("registered", namespace, "after init");
@@ -90,19 +108,23 @@ export namespace ZirconRegistryService {
 		}
 	}
 
-	export function GetGroups(groupIds: readonly string[]) {
-		return groupIds.mapFiltered((groupId) => groups.get(groupId.lower()));
+	export function GetGroups(groupIds: ReadonlyArray<string>): Array<ZirconUserGroup> {
+		return groupIds.mapFiltered(groupId => groups.get(groupId.lower()));
 	}
 
 	/**
-	 * Registers an enumerable type to the specified group(s)
-	 * @param enumType The enumerable type
-	 * @param groups The groups to register the enum to
-	 * @returns The enum
-	 * @deprecated Use `ZirconEnumBuilder` + the ZirconConfigurationBuilder API
+	 * Registers an enumerable type to the specified group(s).
+	 *
+	 * @deprecated Use `ZirconEnumBuilder` + the ZirconConfigurationBuilder API.
+	 * @param enumType - The enumerable type.
+	 * @param groupIds - The groups to register the enum to.
+	 * @returns The enum.
 	 */
-	export function RegisterEnum<K extends string>(enumType: ZirconEnum<K>, groupIds: readonly string[]) {
-		if (!initalized) {
+	export function RegisterEnum<K extends string>(
+		enumType: ZirconEnum<K>,
+		groupIds: ReadonlyArray<string>,
+	): void {
+		if (!initialized) {
 			unregisteredTypes.push([enumType, groupIds]);
 		} else {
 			$print("registered", enumType, "after init");
@@ -113,20 +135,27 @@ export namespace ZirconRegistryService {
 	}
 
 	/**
-	 * Gets the highest player group for this player
+	 * Gets the highest player group for this player.
 	 */
-	export function GetHighestPlayerGroup(player: Player) {
-		return playerGroupMap.get(player)?.reduce((acc, curr) => (curr.GetRank() > acc.GetRank() ? curr : acc));
+	export function GetHighestPlayerGroup(player: Player): undefined | ZirconUserGroup {
+		return playerGroupMap
+			.get(player)
+			?.reduce((acc, curr) => (curr.GetRank() > acc.GetRank() ? curr : acc));
 	}
 
 	/**
 	 * Adds the specified player to the targeted groups.
 	 *
-	 * All players are added to `user`, and group owners/game owners are added to `creator` by default.
-	 * @param player The player to add to the groups
-	 * @param targetGroups The groups to add the player to
+	 * All players are added to `user`, and group owners/game owners are added
+	 * to `creator` by default.
+	 *
+	 * @param player - The player to add to the groups.
+	 * @param targetGroups - An array of groups to add the player to.
 	 */
-	function AddPlayerToGroups(player: Player, targetGroups: Array<string | ZirconUserGroup>) {
+	function AddPlayerToGroups(
+		player: Player,
+		targetGroups: Array<string | ZirconUserGroup>,
+	): void {
 		const playerGroups = playerGroupMap.get(player) ?? [];
 		for (const groupOrId of targetGroups) {
 			const group = typeIs(groupOrId, "string") ? groups.get(groupOrId) : groupOrId;
@@ -154,18 +183,20 @@ export namespace ZirconRegistryService {
 				matching.push(group);
 			}
 		}
+
 		return matching;
 	}
 
+	/** The cache of players that are allowed this permission. */
+	const permissionGroupCache = new Map<keyof ZirconPermissions, Array<Player>>();
 	/**
-	 * The cache of players that are allowed this permission
-	 */
-	const permissionGroupCache = new Map<keyof ZirconPermissions, Player[]>();
-	/**
-	 * Gets the players with the specified permission
+	 * Gets the players with the specified permission.
+	 *
 	 * @internal
 	 */
-	export function InternalGetPlayersWithPermission<K extends keyof ZirconPermissions>(permission: K) {
+	export function InternalGetPlayersWithPermission<K extends keyof ZirconPermissions>(
+		permission: K,
+	): Array<Player> {
 		if (permissionGroupCache.has(permission)) {
 			return permissionGroupCache.get(permission)!;
 		}
@@ -178,24 +209,27 @@ export namespace ZirconRegistryService {
 			}
 		}
 
-		const arr = toArray(playerSet);
-		permissionGroupCache.set(permission, arr);
-		return arr;
+		const array = toArray(playerSet);
+		permissionGroupCache.set(permission, array);
+		return array;
 	}
 
 	/** @internal */
-	export function InternalGetPlayerHasPermission<K extends keyof ZirconPermissions>(player: Player, permission: K) {
+	export function InternalGetPlayerHasPermission<K extends keyof ZirconPermissions>(
+		player: Player,
+		permission: K,
+	): boolean {
 		const players = InternalGetPlayersWithPermission(permission);
-		return players.find((p) => p === player) !== undefined;
+		return players.find(playerCandidate => playerCandidate === player) !== undefined;
 	}
 
-	export function GetGroupOrThrow(name: string) {
+	export function GetGroupOrThrow(name: string): ZirconUserGroup {
 		const group = groups.get(name.lower());
 		assert(group, "Group '" + name + "' does not exist!");
 		return group;
 	}
 
-	function RegisterZirconGlobal([typeId, typeGroups]: ZirconScopedGlobal) {
+	function RegisterZirconGlobal([typeId, typeGroups]: ZirconScopedGlobal): void {
 		if (typeId instanceof ZirconFunction) {
 			for (const group of GetGroups(typeGroups)) {
 				group.RegisterFunction(typeId);
@@ -212,25 +246,28 @@ export namespace ZirconRegistryService {
 	}
 
 	/**
-	 * Initializes Zircon as a logging console *only*.
+	 * Initializes Zircon as a logging console **only**.
 	 *
-	 * This is equivalent to
+	 * This is equivalent to the following.
+	 *
 	 * ```ts
-	 * ZirconServer.Registry.Init(ZirconConfigurationBuilder.logging())
+	 * ZirconServer.Registry.Init(ZirconConfigurationBuilder.logging());
 	 * ```
 	 */
-	export function InitLogging() {
-		return Init(ZirconConfigurationBuilder.logging());
+	export function InitLogging(): void {
+		Init(ZirconConfigurationBuilder.logging());
 	}
 
 	/**
 	 * Initializes Zircon on the server with a given configuration if specified.
 	 *
-	 * If no configuration is passed, it will behave as a logging console _only_.
-	 * @param configuration The configuration
+	 * If no configuration is passed, it will behave as a logging console
+	 * **only**.
+	 *
+	 * @param configuration - The configuration to initialize with.
 	 */
-	export function Init(configuration: ZirconConfiguration) {
-		if (initalized) {
+	export function Init(configuration: ZirconConfiguration): void {
+		if (initialized) {
 			return;
 		}
 
@@ -284,11 +321,11 @@ export namespace ZirconRegistryService {
 			AddPlayerToGroups(player, groupsToJoin);
 		}
 
-		initalized = true;
+		initialized = true;
 		Remotes.Server.Get(RemoteId.ZirconInitialized).SendToAllPlayers();
 	}
 
-	Remotes.Server.OnFunction(RemoteId.GetZirconInitialized, () => initalized);
+	Remotes.Server.OnFunction(RemoteId.GetZirconInitialized, () => initialized);
 }
 
 export type ZirconRegistryService = typeof ZirconRegistryService;

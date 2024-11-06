@@ -1,19 +1,21 @@
 import t from "@rbxts/t";
+
 import Lazy from "../Shared/Lazy";
 import TSRequire from "../Shared/tsImportShim";
-import { ZirconClientDispatchService } from "./ClientDispatchService";
-import { ZirconClientRegistryService } from "./ClientRegistryService";
-import { ZirconDispatchService } from "./DispatchService";
-import { ZirconLogService } from "./LogService";
-import { ZirconRegistryService } from "./RegistryService";
+import type { ZirconClientDispatchService } from "./ClientDispatchService";
+import type { ZirconClientRegistryService } from "./ClientRegistryService";
+import type { ZirconDispatchService } from "./DispatchService";
+import type { ZirconLogService } from "./LogService";
+import type { ZirconRegistryService } from "./RegistryService";
+
 const IS_SERVER = game.GetService("RunService").IsServer();
 
 interface ServiceMap {
-	RegistryService: ZirconRegistryService;
-	DispatchService: ZirconDispatchService;
-	LogService: ZirconLogService;
 	ClientDispatchService: ZirconClientDispatchService;
 	ClientRegistryService: ZirconClientRegistryService;
+	DispatchService: ZirconDispatchService;
+	LogService: ZirconLogService;
+	RegistryService: ZirconRegistryService;
 }
 
 export type ServerDependencies = Array<keyof ServiceMap>;
@@ -26,7 +28,10 @@ const HasDependencyInjection = t.interface({
 const serviceMap = new Map<string, ServiceMap[keyof ServiceMap]>();
 const serviceLoading = new Set<string>();
 
-function GetServiceInt<K extends keyof ServiceMap>(service: K, importingFrom?: keyof ServiceMap): ServiceMap[K] {
+function GetServiceInt<K extends keyof ServiceMap>(
+	service: K,
+	importingFrom?: keyof ServiceMap,
+): ServiceMap[K] {
 	if (serviceLoading.has(service)) {
 		throw `Cyclic service dependency ${importingFrom}<->${service}`;
 	}
@@ -35,7 +40,6 @@ function GetServiceInt<K extends keyof ServiceMap>(service: K, importingFrom?: k
 	if (svcImport === undefined) {
 		serviceLoading.add(service);
 
-		// eslint-disable-next-line @typescript-eslint/no-var-requires
 		// const serviceMaster = require(script.FindFirstChild(service) as ModuleScript) as Map<string, ServiceMap[K]>;
 
 		const serviceMaster = TSRequire(script, service) as Map<string, ServiceMap[K]>;
@@ -45,6 +49,7 @@ function GetServiceInt<K extends keyof ServiceMap>(service: K, importingFrom?: k
 		if (svcImport === undefined) {
 			throw `Tried importing service: ${service}, but no matching ${importId} declaration.`;
 		}
+
 		serviceMap.set(service, svcImport);
 
 		if (HasDependencyInjection(svcImport)) {
@@ -58,16 +63,17 @@ function GetServiceInt<K extends keyof ServiceMap>(service: K, importingFrom?: k
 
 		serviceLoading.delete(service);
 		return svcImport as ServiceMap[K];
-	} else {
-		return svcImport as ServiceMap[K];
 	}
+
+	return svcImport as ServiceMap[K];
 }
 
 /**
- * Synchronously imports the service
+ * Synchronously imports the service.
+ *
+ * @param service - The service name.
  * @rbxts server
  * @internal
- * @param service The service name
  */
 export function GetCommandService<K extends keyof ServiceMap>(service: K): ServiceMap[K] {
 	return GetServiceInt(service);

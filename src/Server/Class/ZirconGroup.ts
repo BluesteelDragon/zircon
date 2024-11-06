@@ -1,14 +1,14 @@
 import { RunService } from "@rbxts/services";
-import ZrContext from "@rbxts/zirconium/out/Data/Context";
-import { ZrEnum } from "@rbxts/zirconium/out/Data/Enum";
-import { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
-import ZrLuauFunction from "@rbxts/zirconium/out/Data/LuauFunction";
-import ZrUndefined from "@rbxts/zirconium/out/Data/Undefined";
-import { ZrObjectUserdata } from "@rbxts/zirconium/out/Data/Userdata";
-import { ZirconEnum } from "Class/ZirconEnum";
-import { ZirconFunction } from "Class/ZirconFunction";
-import { ZirconBindingType, ZirconGroupConfiguration } from "Class/ZirconGroupBuilder";
-import { ZirconNamespace } from "Class/ZirconNamespace";
+import type { ZrEnum } from "@rbxts/zirconium/out/Data/Enum";
+import type { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
+import type ZrLuauFunction from "@rbxts/zirconium/out/Data/LuauFunction";
+import type { ZrObjectUserdata } from "@rbxts/zirconium/out/Data/Userdata";
+
+import type { ZirconEnum } from "Class/ZirconEnum";
+import type { ZirconFunction } from "Class/ZirconFunction";
+import type { ZirconGroupConfiguration } from "Class/ZirconGroupBuilder";
+import { ZirconBindingType } from "Class/ZirconGroupBuilder";
+import type { ZirconNamespace } from "Class/ZirconNamespace";
 
 export interface ZirconRobloxGroupBinding {
 	GroupId: number;
@@ -19,28 +19,28 @@ export type ZirconPermissionSet = Set<keyof ZirconPermissions>;
 export type ReadonlyZirconPermissionSet = ReadonlySet<keyof ZirconPermissions>;
 
 export interface ZirconPermissions {
-	/**
-	 * Whether or not this group can access the console using the shortcut key
-	 */
+	/** Whether or not this group can access the console using the shortcut key. */
 	readonly CanAccessConsole: boolean;
 
 	/**
-	 * Whether or not this group can recieve `Zircon.Log*` messages from the server
-	 */
-	readonly CanRecieveServerLogMessages: boolean;
-	/**
-	 * Whether or not this group is allowed to execute Zirconium scripts
-	 */
-	readonly CanExecuteZirconiumScripts: boolean;
-
-	/**
-	 * Whether or not this group has full access to the Zircon Editor for Zirconium
+	 * Whether or not this group has full access to the Zircon Editor for
+	 * Zirconium.
+	 *
 	 * @deprecated @hidden
 	 */
 	readonly CanAccessFullZirconEditor: boolean;
+	/** Whether or not this group is allowed to execute Zirconium scripts. */
+	readonly CanExecuteZirconiumScripts: boolean;
 
 	/**
-	 * Whether or not this user can view more information about a log message by clicking on it
+	 * Whether or not this group can receive `Zircon.Log*` messages from the
+	 * server.
+	 */
+	readonly CanReceiveServerLogMessages: boolean;
+
+	/**
+	 * Whether or not this user can view more information about a log message by
+	 * clicking on it.
 	 */
 	readonly CanViewLogMetadata: boolean;
 }
@@ -52,24 +52,29 @@ export enum ZirconGroupType {
 }
 
 export default class ZirconUserGroup {
-	private functions = new Map<string, ZrLuauFunction>();
-	private namespaces = new Map<string, ZrObjectUserdata<defined>>();
-	private enums = new Map<string, ZrEnum>();
+	private readonly functions = new Map<string, ZrLuauFunction>();
+	private readonly namespaces = new Map<string, ZrObjectUserdata<defined>>();
+	private readonly enums = new Map<string, ZrEnum>();
 
-	private permissions: ZirconPermissionSet;
-	private members = new WeakSet<Player>();
+	private readonly permissions: ZirconPermissionSet;
+	private readonly members = new WeakSet<Player>();
 
-	public constructor(private id: number, private name: string, private configuration: ZirconGroupConfiguration) {
+	constructor(
+		private readonly id: number,
+		private readonly name: string,
+		private readonly configuration: ZirconGroupConfiguration,
+	) {
 		const permissionSet = new Set<keyof ZirconPermissions>();
 		for (const [name, enabled] of pairs(configuration.Permissions)) {
 			if (typeIs(enabled, "boolean") && enabled) {
 				permissionSet.add(name);
 			}
 		}
+
 		this.permissions = permissionSet;
 	}
 
-	public AddMember(player: Player) {
+	public AddMember(player: Player): void {
 		this.members.add(player);
 	}
 
@@ -77,7 +82,7 @@ export default class ZirconUserGroup {
 		return this.members;
 	}
 
-	public HasMember(player: Player) {
+	public HasMember(player: Player): boolean {
 		return this.members.has(player);
 	}
 
@@ -85,18 +90,16 @@ export default class ZirconUserGroup {
 		return this.configuration;
 	}
 
-	public CanJoinGroup(player: Player) {
+	public CanJoinGroup(player: Player): boolean {
 		const group = this.configuration;
 		let canJoinGroup = false;
 
 		if ((group.BindType & ZirconBindingType.Group) !== 0) {
 			const matchesGroup = group.Groups;
 			for (const group of matchesGroup) {
-				if (typeIs(group.GroupRoleOrRank, "string")) {
-					canJoinGroup ||= player.GetRoleInGroup(group.GroupId) === group.GroupRoleOrRank;
-				} else {
-					canJoinGroup ||= player.GetRankInGroup(group.GroupId) >= group.GroupRoleOrRank;
-				}
+				canJoinGroup ||= typeIs(group.GroupRoleOrRank, "string")
+					? player.GetRoleInGroup(group.GroupId) === group.GroupRoleOrRank
+					: player.GetRankInGroup(group.GroupId) >= group.GroupRoleOrRank;
 			}
 		}
 
@@ -113,21 +116,20 @@ export default class ZirconUserGroup {
 				canJoinGroup = true;
 			}
 
-			if (game.CreatorType === Enum.CreatorType.Group) {
-				canJoinGroup ||= player.GetRankInGroup(game.CreatorId) >= 255;
-			} else {
-				canJoinGroup ||= game.CreatorId === player.UserId;
-			}
+			canJoinGroup ||=
+				game.CreatorType === Enum.CreatorType.Group
+					? player.GetRankInGroup(game.CreatorId) >= 255
+					: game.CreatorId === player.UserId;
 		}
 
 		return canJoinGroup;
 	}
 
-	public GetName() {
+	public GetName(): string {
 		return this.name;
 	}
 
-	public GetRank() {
+	public GetRank(): number {
 		return this.id;
 	}
 
@@ -140,17 +142,17 @@ export default class ZirconUserGroup {
 	}
 
 	/** @internal */
-	public RegisterFunction(func: ZirconFunction<any, any>) {
+	public RegisterFunction(func: ZirconFunction<any, any>): void {
 		this.functions.set(func.GetName(), func);
 	}
 
 	/** @internal */
-	public RegisterEnum(enumerable: ZirconEnum<any>) {
+	public RegisterEnum(enumerable: ZirconEnum<any>): void {
 		this.enums.set(enumerable.getEnumName(), enumerable);
 	}
 
 	/** @internal */
-	public RegisterNamespace(namespace: ZirconNamespace) {
+	public RegisterNamespace(namespace: ZirconNamespace): void {
 		this.namespaces.set(namespace.GetName(), namespace.ToUserdata());
 	}
 

@@ -1,9 +1,14 @@
 import { ZrObjectUserdata } from "@rbxts/zirconium/out/Data/Userdata";
-import ZrPlayerScriptContext from "@rbxts/zirconium/out/Runtime/PlayerScriptContext";
-import { ZirconFunction } from "./ZirconFunction";
+import type ZrPlayerScriptContext from "@rbxts/zirconium/out/Runtime/PlayerScriptContext";
+
+import type { ZirconFunction } from "./ZirconFunction";
 
 export class ZirconNamespace {
-	public constructor(private name: string, private functions: ZirconFunction<any, any>[]) {}
+	constructor(
+		private readonly name: string,
+		private readonly functions: Array<ZirconFunction<any, any>>,
+	) {}
+
 	/** @internal */
 	public RegisterToContext(context: ZrPlayerScriptContext) {
 		const functionMap = new Map<string, ZirconFunction<any, any>>();
@@ -15,11 +20,11 @@ export class ZirconNamespace {
 		context.registerGlobal(this.name, namespaceObject);
 	}
 
-	public GetMembers() {
+	public GetMembers(): ReadonlyArray<ZirconFunction<any, any>> {
 		return this.functions as ReadonlyArray<ZirconFunction<any, any>>;
 	}
 
-	public GetName() {
+	public GetName(): string {
 		return this.name;
 	}
 

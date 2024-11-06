@@ -1,26 +1,21 @@
-import { LogLevel } from "@rbxts/log";
-import { NamespaceBuilder } from "@rbxts/net/out/definitions/NamespaceBuilder";
-import { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
-import ZirconServer from "Server";
-import { ZrTypeCheck } from "Server/Class/ZirconFunction";
-import { ZirconPermissions } from "Server/Class/ZirconGroup";
-import { ZirconEnum } from "./ZirconEnum";
-import { ZirconFunction } from "./ZirconFunction";
-import { ZirconGroupBuilder, ZirconGroupConfiguration } from "./ZirconGroupBuilder";
-import { ZirconNamespace } from "./ZirconNamespace";
-import { ZirconNamespaceBuilder } from "./ZirconNamespaceBuilder";
-import { ZirconValidator } from "./ZirconTypeValidator";
+import type { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
 
-export type ZirconClientScopedGlobal = ZirconNamespace | ZirconEnum<any> | ZirconFunction<any, any>;
+import type { ZirconEnum } from "./ZirconEnum";
+import type { ZirconFunction } from "./ZirconFunction";
+import type { ZirconGroupConfiguration } from "./ZirconGroupBuilder";
+import type { ZirconNamespace } from "./ZirconNamespace";
+import type { ZirconValidator } from "./ZirconTypeValidator";
+
+export type ZirconClientScopedGlobal = ZirconEnum<any> | ZirconFunction<any, any> | ZirconNamespace;
 
 export interface ZirconClientConfiguration {
-	readonly Groups: readonly ZirconGroupConfiguration[];
-	readonly Registry: ZirconClientScopedGlobal[];
+	readonly Groups: ReadonlyArray<ZirconGroupConfiguration>;
+	readonly Registry: Array<ZirconClientScopedGlobal>;
 }
 
 export interface DefaultAdminGroupOptions {
-	readonly GroupRank: number;
 	readonly GroupId?: number;
+	readonly GroupRank: number;
 }
 
 export interface DefaultUserGroupOptions {
@@ -33,19 +28,21 @@ export class ZirconClientConfigurationBuilder {
 		Registry: [],
 	};
 
-	public constructor() {}
-
 	/**
-	 * Adds the specified function to Zircon
+	 * Adds the specified function to Zircon.
 	 *
-	 * Note: This function is available to all users who can access this console, therefore is considered insecure.
+	 * Note: This function is available to all users who can access this
+	 * console, therefore is considered insecure.
 	 *
-	 * Do not use it for anything important. Important stuff should be a server function
-	 * @param functionType The function
+	 * Do not use it for anything important. Important stuff should be a server
+	 * function.
+	 *
+	 * @param functionType - The function to add.
+	 * @returns This client configuration builder.
 	 */
 	public AddFunction<A extends readonly ZirconValidator<unknown, unknown>[], R extends void | ZrValue>(
 		functionType: ZirconFunction<A, R>,
-	) {
+	): this {
 		this.configuration.Registry = [...this.configuration.Registry, functionType];
 		return this;
 	}

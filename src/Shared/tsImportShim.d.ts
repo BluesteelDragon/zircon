@@ -1,3 +1,3 @@
 /** @internal */
-declare function TSRequire(relativeTo: Instance, ...rel: string[]): unknown;
+declare function TSRequire(relativeTo: Instance, ...rel: Array<string>): unknown;
 export = TSRequire;

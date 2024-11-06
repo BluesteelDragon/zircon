@@ -1,17 +1,24 @@
 import { LogLevel } from "@rbxts/log";
-import { ZirconFunction } from "./ZirconFunction";
+
+import type { ZirconFunction } from "./ZirconFunction";
 import { ZirconFunctionBuilder } from "./ZirconFunctionBuilder";
 import { ZirconNamespace } from "./ZirconNamespace";
 
-type HelpFn = (name: string, argumentTypes: string[], description: string | undefined) => void;
+type HelpFunc = (
+	name: string,
+	argumentTypes: Array<string>,
+	description: string | undefined,
+) => void;
 export class ZirconNamespaceBuilder {
-	private functions = new Array<ZirconFunction<any, any>>();
+	private readonly functions = new Array<ZirconFunction<any, any>>();
 
-	public constructor(private name: string) {}
+	constructor(private readonly name: string) {}
 
-	public AddFunction(func: ZirconFunction<any, any>) {
-		const existingFn = this.functions.find((f) => f.GetName() === func.GetName());
-		if (existingFn) {
+	public AddFunction(func: ZirconFunction<any, any>): this {
+		const existingFunc = this.functions.find(
+			registeredFunc => registeredFunc.GetName() === func.GetName(),
+		);
+		if (existingFunc) {
 			warn("Duplicate function: '" + func.GetName() + "' in namespace '" + this.name + "'");
 		} else {
 			this.functions.push(func);
@@ -21,23 +28,27 @@ export class ZirconNamespaceBuilder {
 	}
 
 	/** @internal */
+	// eslint-disable-next-line max-lines-per-function -- a 4
 	public AddHelpFunction(
-		callback: HelpFn = (name, args, desc) => {
-			import("Services/LogService").then(({ ZirconLogService }) => {
+		callback: HelpFunc = (name, args, desc) => {
+			void import("Services/LogService").then(({ ZirconLogService }) => {
 				ZirconLogService.WriteStructured({
-					Template: desc !== undefined ? "function {Name} {Args}: '{Description}'" : "function {Name} {Args}",
-					Name: name,
 					Args: args,
 					Description: desc,
-					Timestamp: DateTime.now().ToIsoDate(),
 					Level: LogLevel.Information,
+					Name: name,
 					SourceContext: `${this.name}.${functionName}`,
+					Template:
+						desc !== undefined
+							? "function {Name} {Args}: '{Description}'"
+							: "function {Name} {Args}",
+					Timestamp: DateTime.now().ToIsoDate(),
 				});
 			});
 		},
 		functionName = "help",
 		functionDescription = "Lists all members in this namespace",
-	) {
+	): this {
 		this.functions.push(
 			new ZirconFunctionBuilder(functionName)
 				.AddArgument("string?")
@@ -51,9 +62,9 @@ export class ZirconNamespaceBuilder {
 							: undefined;
 					if (matchingMember) {
 						const args = matchingMember.GetArgumentTypes();
-						const varType = matchingMember.GetVariadicType();
-						if (varType !== undefined) {
-							args.push(`...${varType}`);
+						const variadicType = matchingMember.GetVariadicType();
+						if (variadicType !== undefined) {
+							args.push(`...${variadicType}`);
 						}
 
 						callback(matchingMember.GetName(), args, matchingMember.GetDescription());
@@ -61,21 +72,23 @@ export class ZirconNamespaceBuilder {
 						this.functions
 							.map((f) => {
 								const args = f.GetArgumentTypes();
-								const varType = f.GetVariadicType();
-								if (varType !== undefined) {
-									args.push(`...${varType}`);
+								const variadicType = f.GetVariadicType();
+								if (variadicType !== undefined) {
+									args.push(`...${variadicType}`);
 								}
 
 								return [f.GetName(), args, f.GetDescription()] as const;
 							})
-							.forEach((arg) => callback(...arg));
+							.forEach(argument => {
+								callback(...argument);
+							});
 					}
 				}),
 		);
 		return this;
 	}
 
-	public Build() {
+	public Build(): ZirconNamespace {
 		return new ZirconNamespace(this.name, this.functions);
 	}
 }

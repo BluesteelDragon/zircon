@@ -1,33 +1,37 @@
 import t from "@rbxts/t";
 import { ZrEnum } from "@rbxts/zirconium/out/Data/Enum";
 import { ZrEnumItem } from "@rbxts/zirconium/out/Data/EnumItem";
-import { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
+import type { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
 import ZrObject from "@rbxts/zirconium/out/Data/Object";
 import ZrRange from "@rbxts/zirconium/out/Data/Range";
 import ZrUndefined from "@rbxts/zirconium/out/Data/Undefined";
-import { ZrUserdata, ZrInstanceUserdata } from "@rbxts/zirconium/out/Data/Userdata";
+import { ZrInstanceUserdata, ZrUserdata } from "@rbxts/zirconium/out/Data/Userdata";
+
 import { ZirconFunction } from "Class/ZirconFunction";
 
 const array = t.array(t.any);
 
-interface TypeId extends Pick<CheckableTypes, "string" | "number" | "boolean"> {
-	undefined: ZrUndefined;
-	function: ZirconFunction<any, any>;
-	range: ZrRange;
-	userdata: ZrUserdata<any>;
-	Instance: ZrInstanceUserdata<Instance>;
-	object: ZrObject;
+interface TypeId extends Pick<CheckableTypes, "boolean" | "number" | "string"> {
+	array: Array<ZrValue>;
 	enum: ZrEnum;
 	EnumItem: ZrEnumItem;
-	array: ZrValue[];
+	function: ZirconFunction<any, any>;
+	Instance: ZrInstanceUserdata;
+	object: ZrObject;
+	range: ZrRange;
+	undefined: ZrUndefined;
+	userdata: ZrUserdata<any>;
 }
 
-export function zirconTypeIs<K extends keyof TypeId>(value: ZrValue | ZrUndefined, k: K): value is TypeId[K] {
+export function zirconTypeIs<K extends keyof TypeId>(
+	value: ZrUndefined | ZrValue,
+	k: K,
+): value is TypeId[K] {
 	return zirconTypeOf(value) === k;
 }
 
-export type ZirconCheckableTypes = keyof TypeId | `enum$${string}`;
-export function zirconTypeOf(value: ZrValue | ZrUndefined): ZirconCheckableTypes {
+export type ZirconCheckableTypes = `enum$${string}` | keyof TypeId;
+export function zirconTypeOf(value: ZrUndefined | ZrValue): ZirconCheckableTypes {
 	if (typeIs(value, "string") || typeIs(value, "number") || typeIs(value, "boolean")) {
 		return typeOf(value) as ZirconCheckableTypes;
 	} else if (value === ZrUndefined) {
@@ -48,12 +52,12 @@ export function zirconTypeOf(value: ZrValue | ZrUndefined): ZirconCheckableTypes
 		return `enum$${value.getEnum().getEnumName()}`;
 	} else if (array(value)) {
 		return "array";
-	} else {
-		throw `Invalid Zirconium Type`;
 	}
+
+	throw `Invalid Zirconium Type`;
 }
 
-export function zirconTypeId(value: ZrValue | ZrUndefined) {
+export function zirconTypeId(value: ZrUndefined | ZrValue): string {
 	if (zirconTypeIs(value, "string")) {
 		return `string "${value}"`;
 	} else if (zirconTypeIs(value, "number") || zirconTypeIs(value, "boolean")) {
@@ -66,7 +70,7 @@ export function zirconTypeId(value: ZrValue | ZrUndefined) {
 		return `EnumItem '${value.getEnum().getEnumName()}::${value.getName()}'`;
 	} else if (zirconTypeIs(value, "function")) {
 		return `function '${value.GetName()}'`;
-	} else {
-		return zirconTypeOf(value);
 	}
+
+	return zirconTypeOf(value);
 }

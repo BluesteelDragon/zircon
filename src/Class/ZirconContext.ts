@@ -1,11 +1,17 @@
-import { LogEvent, LogLevel } from "@rbxts/log";
-import { MessageTemplateParser, PropertyToken } from "@rbxts/message-templates";
-import { DestructureMode, TemplateTokenKind } from "@rbxts/message-templates/out/MessageTemplateToken";
-import ZrContext from "@rbxts/zirconium/out/Data/Context";
+import type { LogEvent } from "@rbxts/log";
+import { LogLevel } from "@rbxts/log";
+import type { PropertyToken } from "@rbxts/message-templates";
+import { MessageTemplateParser } from "@rbxts/message-templates";
+import {
+	DestructureMode,
+	TemplateTokenKind,
+} from "@rbxts/message-templates/out/MessageTemplateToken";
 import { RbxSerializer } from "@rbxts/message-templates/out/RbxSerializer";
-import { ZirconFunction } from "./ZirconFunction";
 import { RunService } from "@rbxts/services";
-import { ZrInputStream, ZrOutputStream } from "@rbxts/zirconium/out/Data/Stream";
+import type ZrContext from "@rbxts/zirconium/out/Data/Context";
+import type { ZrInputStream, ZrOutputStream } from "@rbxts/zirconium/out/Data/Stream";
+
+import type { ZirconFunction } from "./ZirconFunction";
 
 export interface ReadonlyZirconContext {
 	GetExecutor(): Player;
@@ -17,50 +23,60 @@ export interface ZirconBeforeContext extends ReadonlyZirconContext {
 }
 export interface ZirconAfterContext extends ReadonlyZirconContext {
 	GetInput(): ZrInputStream;
-	GetOutput(): ZrOutputStream;
 	GetLogs(): ReadonlyArray<LogEvent>;
+	GetOutput(): ZrOutputStream;
 }
 
-export class ZirconContext implements ReadonlyZirconContext, ZirconBeforeContext, ZirconAfterContext {
-	private logs = new Array<LogEvent>();
+export class ZirconContext
+	implements ReadonlyZirconContext, ZirconBeforeContext, ZirconAfterContext
+{
+	private readonly logs = new Array<LogEvent>();
 
-	constructor(private innerContext: ZrContext, private executingFunction: ZirconFunction<any, any>) {}
-	public GetExecutor() {
+	constructor(
+		private readonly innerContext: ZrContext,
+		private readonly executingFunction: ZirconFunction<any, any>,
+	) {}
+
+	public GetExecutor(): Player {
 		const executor = this.innerContext.getExecutor();
 		assert(executor);
 		return executor;
 	}
 
 	/**
-	 * Writes a log response to the executing player
-	 * @param level The log level
-	 * @param template The template string
-	 * @param args The arguments to the template string
+	 * Writes a log response to the executing player.
+	 *
+	 * @param level - The log level to emit.
+	 * @param template - The template string.
+	 * @param args - The arguments to the template string.
 	 */
-	private Log(level: LogLevel, template: string, ...args: unknown[]) {
+	// eslint-disable-next-line max-lines-per-function -- a 6
+	private Log(level: LogLevel, template: string, ...args: Array<unknown>): void {
 		if (RunService.IsServer()) {
-			import("../Services/LogService").then((log) => {
+			void import("../Services/LogService").then(log => {
 				const message: Writable<LogEvent> = {
 					Level: level,
+					LogToPlayer: this.GetExecutor(),
 					SourceContext: `(function '${this.executingFunction.GetName()}')`,
 					Template: template,
 					Timestamp: DateTime.now().ToIsoDate(),
-					LogToPlayer: this.GetExecutor(),
 				};
 
 				const tokens = MessageTemplateParser.GetTokens(template);
-				const propertyTokens = tokens.filter((t): t is PropertyToken => t.kind === TemplateTokenKind.Property);
+				const propertyTokens = tokens.filter(
+					(token): token is PropertyToken => token.kind === TemplateTokenKind.Property,
+				);
 
-				let idx = 0;
+				let index = 0;
 				for (const token of propertyTokens) {
-					const arg = args[idx++];
+					const argument = args[index++];
 
-					if (idx <= args.size()) {
-						if (arg !== undefined) {
+					if (index <= args.size()) {
+						if (argument !== undefined) {
 							if (token.destructureMode === DestructureMode.ToString) {
-								message[token.propertyName] = tostring(arg);
+								message[token.propertyName] = tostring(argument);
 							} else {
-								message[token.propertyName] = typeIs(arg, "table") ? arg : RbxSerializer.Serialize(arg);
+								message[token.propertyName] = typeIs(argument, "table") ? argument : RbxSerializer.Serialize(argument);
 							}
 						}
 					}
@@ -70,13 +86,13 @@ export class ZirconContext implements ReadonlyZirconContext, ZirconBeforeContext
 				this.logs.push(message);
 			});
 		} else {
-			import("../Client/index").then(({ default: client }) => {
+			void import("../Client/index").then(({ default: client }) => {
 				const log: LogEvent = {
 					Level: level,
+					LogToPlayer: this.GetExecutor(),
 					SourceContext: `(function '${this.executingFunction.GetName()}')`,
 					Template: template,
 					Timestamp: DateTime.now().ToIsoDate(),
-					LogToPlayer: this.GetExecutor(),
 				};
 				client.StructuredLog(log);
 				this.logs.push(log);
@@ -85,29 +101,32 @@ export class ZirconContext implements ReadonlyZirconContext, ZirconBeforeContext
 	}
 
 	/**
-	 * Logs an information message to the calling player
-	 * @param template The template string
-	 * @param args The template string args
+	 * Logs an information message to the calling player.
+	 *
+	 * @param template - The template string.
+	 * @param args - The template string args.
 	 */
-	public LogInfo(template: string, ...args: unknown[]) {
+	public LogInfo(template: string, ...args: Array<unknown>): void {
 		this.Log(LogLevel.Information, template, ...args);
 	}
 
 	/**
-	 * Logs a warning message to the calling player
-	 * @param template The template string
-	 * @param args The template string args
+	 * Logs a warning message to the calling player.
+	 *
+	 * @param template - The template string.
+	 * @param args - The template string args.
 	 */
-	public LogWarning(template: string, ...args: unknown[]) {
+	public LogWarning(template: string, ...args: Array<unknown>): void {
 		this.Log(LogLevel.Warning, template, ...args);
 	}
 
 	/**
-	 * Logs an error message to the calling player
-	 * @param template The template string
-	 * @param args The template string args
+	 * Logs an error message to the calling player.
+	 *
+	 * @param template - The template string.
+	 * @param args - The template string args.
 	 */
-	public LogError(template: string, ...args: unknown[]) {
+	public LogError(template: string, ...args: Array<unknown>): void {
 		this.Log(LogLevel.Error, template, ...args);
 	}
 
@@ -116,26 +135,29 @@ export class ZirconContext implements ReadonlyZirconContext, ZirconBeforeContext
 	}
 
 	/**
-	 * Gets the output stream for the `|` pipe operator
-	 * @returns The output stream
+	 * Gets the output stream for the `|` pipe operator.
+	 *
+	 * @returns The output stream.
 	 */
-	public GetOutput() {
+	public GetOutput(): ZrOutputStream {
 		return this.innerContext.getOutput();
 	}
 
 	/**
-	 * Gets the input stream for the `|` pipe operator
-	 * @returns The input stream
+	 * Gets the input stream for the `|` pipe operator.
+	 *
+	 * @returns The input stream.
 	 */
-	public GetInput() {
+	public GetInput(): ZrInputStream {
 		return this.innerContext.getInput();
 	}
 
 	/**
-	 * Gets the name of the calling function
-	 * @returns The name of the calling function
+	 * Gets the name of the calling function.
+	 *
+	 * @returns The name of the calling function.
 	 */
-	public GetFunctionName() {
+	public GetFunctionName(): string {
 		return this.executingFunction.GetName();
 	}
 }

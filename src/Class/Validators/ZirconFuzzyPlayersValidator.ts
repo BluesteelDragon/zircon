@@ -1,20 +1,26 @@
-import { ZrInstanceUserdata } from "@rbxts/zirconium/out/Data/Userdata";
-import { OptionalValidator } from "./OptionalValidator";
-import { StatefulZirconValidator } from "../StatefulZirconValidator";
 import { Players } from "@rbxts/services";
+import type { ZrInstanceUserdata } from "@rbxts/zirconium/out/Data/Userdata";
+
 import ZirconServer from "Server";
 
+import { StatefulZirconValidator } from "../StatefulZirconValidator";
+import { OptionalValidator } from "./OptionalValidator";
+
 export class ZirconFuzzyPlayersValidator extends StatefulZirconValidator<
-	string | number | ZrInstanceUserdata<Player>[],
-	readonly Player[]
+	Array<ZrInstanceUserdata<Player>> | number | string,
+	ReadonlyArray<Player>
 > {
 	public playerRef = new Array<Player>();
 
-	public constructor() {
+	constructor() {
 		super("Player[]");
 	}
 
-	public Validate(value: unknown, executingPlayer?: Player): value is string | number | ZrInstanceUserdata<Player>[] {
+	// eslint-disable-next-line max-lines-per-function -- a 7
+	public Validate(
+		value: unknown,
+		executingPlayer?: Player,
+	): value is Array<ZrInstanceUserdata<Player>> | number | string {
 		this.playerRef = [];
 		if (typeIs(value, "string")) {
 			if (value.find("^@", 1)[0] !== undefined) {
@@ -29,12 +35,13 @@ export class ZirconFuzzyPlayersValidator extends StatefulZirconValidator<
 					for (const member of group.GetMembers()) {
 						this.playerRef.push(member);
 					}
+
 					return true;
 				}
 			}
 
 			const matchingPlayers = Players.GetPlayers().filter(
-				(player) => player.Name.lower().find(value.lower(), 1, true)[0] !== undefined,
+				player => player.Name.lower().find(value.lower(), 1, true)[0] !== undefined,
 			);
 			for (const matchingPlayer of matchingPlayers) {
 				this.playerRef.push(matchingPlayer);
@@ -50,7 +57,7 @@ export class ZirconFuzzyPlayersValidator extends StatefulZirconValidator<
 		return this.playerRef.size() > 0;
 	}
 
-	public Transform() {
+	public Transform(): Array<Player> {
 		assert(this.playerRef, "Transform called before Validate, perhaps?");
 		return this.playerRef;
 	}

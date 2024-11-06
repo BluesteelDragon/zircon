@@ -1,16 +1,17 @@
 export function values<V>(collection: Map<defined, V>): Array<V> {
-	const arr = new Array<V>();
-	return arr;
+	const array = new Array<V>();
+	return array;
 }
 
 export function toArray<TValue>(collection: ReadonlySet<TValue>): Array<TValue>;
 export function toArray<TValue>(collection: ReadonlyMap<defined, TValue>): Array<TValue>;
 export function toArray<V, K extends keyof V>(collection: { [P in K]: V[P] }) {
-	const arr = new Array<K>();
+	const array = new Array<K>();
 	for (const [key] of pairs(collection)) {
-		arr.push(key as K);
+		array.push(key as K);
 	}
-	return arr;
+
+	return array;
 }
 
 export function setsEqual<TValue>(
@@ -23,6 +24,7 @@ export function setsEqual<TValue>(
 				return false;
 			}
 		}
+
 		for (const item of collectionB) {
 			if (!collectionA.has(item)) {
 				return false;
@@ -35,11 +37,15 @@ export function setsEqual<TValue>(
 	return true;
 }
 
-export function last<TValue extends defined>(collection: Array<TValue>, amount: number): Array<TValue> {
+export function last<TValue extends defined>(
+	collection: Array<TValue>,
+	amount: number,
+): Array<TValue> {
 	const amountCalculated = math.min(amount, collection.size());
 	const newArray = new Array<TValue>(amountCalculated);
 	for (let start = collection.size() - amountCalculated; start < collection.size(); start++) {
 		newArray.push(collection[start]);
 	}
+
 	return newArray;
 }

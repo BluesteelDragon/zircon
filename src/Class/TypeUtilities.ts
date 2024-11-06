@@ -1,13 +1,14 @@
 import t from "@rbxts/t";
+
 import { ZirconEnum } from "./ZirconEnum";
-import {
-	BuiltInValidators,
+import type {
 	InferTypeFromValidator2,
 	InferValidator,
 	InferValidators,
 	Validator,
 	ZirconValidator,
 } from "./ZirconTypeValidator";
+import { BuiltInValidators } from "./ZirconTypeValidator";
 
 const isArray = t.array(t.any);
 type ArrayType<T> = T extends ReadonlyArray<infer U> ? U : never;
@@ -21,11 +22,12 @@ export function ZirconGetValidatorType<V extends Validator>(validatorLike: V) {
 	} else {
 		validator = validatorLike;
 	}
+
 	return validator;
 }
 
 export function ZirconTypeUnion<V extends ReadonlyArray<Validator>>(...validators: V) {
-	const result = (validators.map(ZirconGetValidatorType) as unknown) as InferValidators<V>;
+	const result = validators.map(ZirconGetValidatorType) as unknown as InferValidators<V>;
 	return ZirconUnionValidator(result);
 }
 
@@ -41,24 +43,22 @@ export function ZirconArrayType<T extends Validator>(validator: T) {
 
 export interface ZirconUnionValidator<T extends ReadonlyArray<unknown>, U extends ReadonlyArray<unknown>>
 	extends ZirconValidator<T[number], U[number]> {}
-export function ZirconUnionValidator<T extends ReadonlyArray<ZirconValidator<any, any>>>(validators: T) {
+export function ZirconUnionValidator<T extends ReadonlyArray<ZirconValidator<any, any>>>(
+	validators: T,
+): ZirconValidator<InferTypeFromValidator2<ArrayType<T>>> {
 	return {
-		Type: validators.map((v) => v.Type).join(" | "),
-		Validate(value: unknown, player?: Player): value is ArrayType<T> {
-			return validators.some((v) => v.Validate(value, player));
-		},
 		Transform(value: unknown, player?: Player): ArrayType<T> {
 			for (const validator of validators) {
 				if (validator.Validate(value)) {
-					if (validator.Transform !== undefined) {
-						return validator.Transform(value, player);
-					} else {
-						return value;
-					}
+					return validator.Transform !== undefined ? validator.Transform(value, player) : value;
 				}
 			}
 
 			return undefined!;
+		},
+		Type: validators.map(validator => validator.Type).join(" | "),
+		Validate(value: unknown, player?: Player): value is ArrayType<T> {
+			return validators.some(validator => validator.Validate(value, player));
 		},
 	} as ZirconValidator<InferTypeFromValidator2<ArrayType<T>>>;
 }

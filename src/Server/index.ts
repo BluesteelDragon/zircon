@@ -1,29 +1,27 @@
-import { LogService, RunService } from "@rbxts/services";
-import Remotes, { RemoteId, ZirconDebugInformation, ZirconNetworkMessageType } from "../Shared/Remotes";
+import { RunService } from "@rbxts/services";
+import type { ZrParserError } from "@rbxts/zirconium/out/Ast/Parser";
+import type { ZrRuntimeError } from "@rbxts/zirconium/out/Runtime/Runtime";
+
+import { $print } from "rbxts-transform-debug";
+import { ZirconDebug } from "Shared/Debugging";
+
+import { ZirconLogLevel } from "../Client/Types";
 import { GetCommandService } from "../Services";
 import Lazy from "../Shared/Lazy";
-import { ZrRuntimeError } from "@rbxts/zirconium/out/Runtime/Runtime";
-import { ZrParserError } from "@rbxts/zirconium/out/Ast/Parser";
-import { Token } from "@rbxts/zirconium/out/Ast/Tokens/Tokens";
-import { Node } from "@rbxts/zirconium/out/Ast/Nodes/NodeTypes";
-import { $dbg, $print } from "rbxts-transform-debug";
-import { ZirconLogLevel } from "../Client/Types";
-import { ReadonlyZirconPermissionSet } from "./Class/ZirconGroup";
-import { ZirconDebug } from "Shared/Debugging";
+import Remotes, { RemoteId, ZirconNetworkMessageType } from "../Shared/Remotes";
+import type { ReadonlyZirconPermissionSet } from "./Class/ZirconGroup";
+import ZrScript from "@rbxts/zirconium/out/Runtime/Script";
+
 const IsServer = RunService.IsServer();
 
 namespace ZirconServer {
-	/**
-	 * The server registry for Zircon
-	 */
+	/** The server registry for Zircon. */
 	export const Registry = Lazy(() => {
 		assert(IsServer, "Zircon Service only accessible on server");
 		return GetCommandService("RegistryService");
 	});
 
-	/**
-	 * The server dispatch for Zircon
-	 */
+	/** The server dispatch for Zircon. */
 	export const Dispatch = Lazy(() => {
 		assert(IsServer, "Zircon Service only accessible on server");
 		return GetCommandService("DispatchService");
@@ -39,24 +37,24 @@ namespace ZirconServer {
 		const StandardError = Remotes.Server.Create(RemoteId.StandardError);
 		const DispatchToServer = Remotes.Server.Create(RemoteId.DispatchToServer);
 
-		async function dispatch(player: Player, text: string) {
-			return Dispatch.ExecuteScript(player, text).then((result) => result.execute());
+		async function dispatch(player: Player, text: string): Promise<ReadonlyArray<string>> {
+			return Dispatch.ExecuteScript(player, text).then(result => result.execute());
 		}
 
 		DispatchToServer.Connect((player, message) => {
 			$print(player, message);
 			dispatch(player, message)
-				.then((output) => {
+				.then(output => {
 					for (const message of output) {
 						StandardOutput.SendToPlayer(player, {
-							type: ZirconNetworkMessageType.ZirconiumOutput,
-							time: DateTime.now().UnixTimestamp,
-							script: "zr",
 							message,
+							script: "zr",
+							time: DateTime.now().UnixTimestamp,
+							type: ZirconNetworkMessageType.ZirconiumOutput,
 						});
 					}
 				})
-				.catch((err: (ZrRuntimeError | ZrParserError)[]) => {
+				.catch((err: Array<ZrParserError | ZrRuntimeError>) => {
 					for (const zrError of err) {
 						const errStruct = ZirconDebug.GetMessageForError(message, zrError);
 						StandardError.SendToPlayer(player, errStruct);
@@ -65,16 +63,21 @@ namespace ZirconServer {
 		});
 
 		const GetPlayerOptions = Remotes.Server.Create(RemoteId.GetPlayerPermissions);
-		GetPlayerOptions.SetCallback((player) => {
+		GetPlayerOptions.SetCallback(player => {
 			const group = Registry.GetHighestPlayerGroup(player);
 			if (group) {
 				return group.GetPermissions();
-			} else {
-				Log.Write(ZirconLogLevel.Wtf, "GetPlayerPermissions", `Could not fetch permissions for player {}`, {
-					Variables: [player],
-				});
-				return new ReadonlySet() as ReadonlyZirconPermissionSet;
 			}
+
+			Log.Write(
+				ZirconLogLevel.Wtf,
+				"GetPlayerPermissions",
+				`Could not fetch permissions for player {}`,
+				{
+					Variables: [player],
+				},
+			);
+			return new ReadonlySet() as ReadonlyZirconPermissionSet;
 		});
 	}
 }

@@ -1,12 +1,12 @@
 import Zr from "@rbxts/zirconium";
 import { ZrScriptVersion } from "@rbxts/zirconium/out/Ast/Parser";
-import ZrScript from "@rbxts/zirconium/out/Runtime/Script";
-import { ZrScriptCreateResult } from "@rbxts/zirconium/out/Runtime/ScriptContext";
+import type ZrScript from "@rbxts/zirconium/out/Runtime/Script";
+
 import { GetCommandService } from "../Services";
 
 interface stdio {
-	stdout: Array<string>;
 	stdin: Array<string>;
+	stdout: Array<string>;
 }
 
 export interface ExecutionParams extends stdio {
@@ -17,7 +17,7 @@ export namespace ZirconDispatchService {
 	const globalContext = Zr.createContext("global");
 
 	/** @internal */
-	export async function ExecuteScriptGlobal(text: string) {
+	export async function ExecuteScriptGlobal(text: string): Promise<ZrScript> {
 		return Promise.defer<ZrScript>((resolve, reject) => {
 			// const source = globalContext.parseSource(text);
 			// // const execution = globalContext.createScript()
@@ -30,7 +30,7 @@ export namespace ZirconDispatchService {
 		});
 	}
 
-	export async function ExecuteScript(player: Player, text: string) {
+	export async function ExecuteScript(player: Player, text: string): Promise<ZrScript> {
 		const Registry = GetCommandService("RegistryService");
 		return Promise.defer<ZrScript>((resolve, reject) => {
 			const [mainScript] = Registry.GetScriptContextsForPlayer(player);

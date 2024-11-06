@@ -1,23 +1,24 @@
 import { ZrInstanceUserdata } from "@rbxts/zirconium/out/Data/Userdata";
-import { OptionalValidator } from "./OptionalValidator";
+
 import { StatefulZirconValidator } from "../StatefulZirconValidator";
+import { OptionalValidator } from "./OptionalValidator";
 
 export class ZirconFuzzyPlayerValidator extends StatefulZirconValidator<
-	string | number | ZrInstanceUserdata<Player>,
+	number | string | ZrInstanceUserdata<Player>,
 	Player
 > {
 	public playerRef?: Player;
 
-	public constructor() {
+	constructor() {
 		super("Player");
 	}
 
-	public Validate(value: unknown): value is string | number | ZrInstanceUserdata<Player> {
+	public Validate(value: unknown): value is number | string | ZrInstanceUserdata<Player> {
 		if (typeIs(value, "string")) {
 			const existingPlayer = game
 				.GetService("Players")
 				.GetPlayers()
-				.find((player) => player.Name.sub(1, value.size()).lower() === value.lower());
+				.find(player => player.Name.sub(1, value.size()).lower() === value.lower());
 			if (existingPlayer) {
 				this.playerRef = existingPlayer;
 				return true;
@@ -36,7 +37,7 @@ export class ZirconFuzzyPlayerValidator extends StatefulZirconValidator<
 		return false;
 	}
 
-	public Transform() {
+	public Transform(): Player {
 		assert(this.playerRef, "Transform called before Validate, perhaps?");
 		return this.playerRef;
 	}

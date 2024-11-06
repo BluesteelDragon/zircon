@@ -1,6 +1,6 @@
-type Literal = string | number | boolean | undefined | undefined | void | defined;
+type Literal = boolean | defined | number | string | undefined | void;
 
-type Lazy<T> = T & { readonly __nominal_Lazy: any };
+type Lazy<T> = { readonly __nominal_Lazy: any } & T;
 
 declare function Lazy<T, A extends Array<Literal>>(fn: (...args: A) => T, ...args: A): Lazy<T>;
 

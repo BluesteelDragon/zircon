@@ -1,41 +1,45 @@
-import ZrContext from "@rbxts/zirconium/out/Data/Context";
-import { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
+import type ZrContext from "@rbxts/zirconium/out/Data/Context";
+import type { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
 import ZrLuauFunction from "@rbxts/zirconium/out/Data/LuauFunction";
 import ZrObject from "@rbxts/zirconium/out/Data/Object";
-import ZrUndefined from "@rbxts/zirconium/out/Data/Undefined";
-import { ZirconContext } from "Class/ZirconContext";
+import type ZrUndefined from "@rbxts/zirconium/out/Data/Undefined";
 
-export type ZrTypeCheck = (value: ZrValue | ZrUndefined) => value is ZrValue | ZrUndefined;
+export type ZrTypeCheck = (value: ZrUndefined | ZrValue) => value is ZrUndefined | ZrValue;
+
 type ZrInferValue<T> = T extends (value: unknown) => value is infer A ? A : never;
 type InferArguments<T> = { readonly [P in keyof T]: ZrInferValue<T[P]> };
 
 export interface CommandDeclaration<A extends ReadonlyArray<ZrTypeCheck>, R> {
-	Groups: string[];
 	Arguments: A;
 	Execute: (this: void, context: ZrContext, ...args: InferArguments<A>) => R;
+	Groups: Array<string>;
 }
 
 /** @deprecated */
-export default class ZirconFunction<A extends readonly ZrTypeCheck[], R = unknown> extends ZrLuauFunction {
-	private constructor(private declaration: CommandDeclaration<A, R>) {
-		super((ctx, ...args) => {
-			for (let i = 0; i < args.size(); i++) {
-				const argCheck = declaration.Arguments[i];
-				if (!argCheck(args[i])) {
+export default class ZirconFunction<
+	A extends ReadonlyArray<ZrTypeCheck>,
+	R = unknown,
+> extends ZrLuauFunction {
+	private constructor(private readonly declaration: CommandDeclaration<A, R>) {
+		super((context, ...args) => {
+			for (let index = 0; index < args.size(); index++) {
+				const argumentCheck = declaration.Arguments[index];
+				if (!argumentCheck(args[index])) {
 					return false;
 				}
 			}
-			declaration.Execute(ctx, ...(args as InferArguments<A>));
+
+			declaration.Execute(context, ...(args as InferArguments<A>));
 		});
 	}
 
-	public static create<A extends ReadonlyArray<ZrTypeCheck>, R>(declaration: CommandDeclaration<A, R>) {
+	public static create<A extends ReadonlyArray<ZrTypeCheck>, R>(
+		declaration: CommandDeclaration<A, R>,
+	): ZirconFunction<A, R> {
 		return new ZirconFunction<A, R>(declaration);
 	}
 
-	public static readonly string = (value: unknown): value is string => {
-		return typeIs(value, "string");
-	};
+	public static readonly string = (value: unknown): value is string => typeIs(value, "string");
 
 	public static readonly number = (value: unknown): value is number => {
 		return typeIs(value, "number");
@@ -55,7 +59,7 @@ export default class ZirconFunction<A extends readonly ZrTypeCheck[], R = unknow
 }
 
 ZirconFunction.create({
-	Groups: [],
 	Arguments: [ZirconFunction.string, ZirconFunction.number] as const,
-	Execute(ctx, arg0) {},
+	Execute(context, argument0) {},
+	Groups: [],
 });

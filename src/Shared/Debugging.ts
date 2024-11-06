@@ -1,27 +1,32 @@
-import { Node } from "@rbxts/zirconium/out/Ast/Nodes/NodeTypes";
-import { ZrParserError } from "@rbxts/zirconium/out/Ast/Parser";
-import { Token } from "@rbxts/zirconium/out/Ast/Tokens/Tokens";
-import { ZrRuntimeError } from "@rbxts/zirconium/out/Runtime/Runtime";
+import type { Node } from "@rbxts/zirconium/out/Ast/Nodes/NodeTypes";
+import type { ZrParserError } from "@rbxts/zirconium/out/Ast/Parser";
+import type { Token } from "@rbxts/zirconium/out/Ast/Tokens/Tokens";
+import type { ZrRuntimeError } from "@rbxts/zirconium/out/Runtime/Runtime";
+
 import { $dbg } from "rbxts-transform-debug";
-import {
+
+import type {
 	ZirconDebugInformation,
-	ZirconErrorOutput,
 	ZirconiumParserErrorMessage,
 	ZirconiumRuntimeErrorMessage,
-	ZirconNetworkMessageType,
 } from "./Remotes";
+import { ZirconNetworkMessageType } from "./Remotes";
 
 /** @internal */
 export namespace ZirconDebug {
 	/** @internal */
-	export function IsParserError(err: ZrRuntimeError | ZrParserError): err is ZrParserError {
+	export function IsParserError(err: ZrParserError | ZrRuntimeError): err is ZrParserError {
 		return err.code >= 1000;
 	}
 
 	/** @internal */
-	export function GetDebugInformationForNode(source: string, node: Node) {
-		const startPos = node.startPos ?? 0;
-		const endPos = node.endPos ?? startPos;
+	// eslint-disable-next-line max-lines-per-function -- a
+	export function GetDebugInformationForNode(
+		source: string,
+		node: Node,
+	): undefined | ZirconDebugInformation {
+		const startPosition = node.startPos ?? 0;
+		const endPosition = node.endPos ?? startPosition;
 
 		let col = 0;
 		let row = 1;
@@ -32,11 +37,11 @@ export namespace ZirconDebug {
 		for (let i = 0; i < source.size(); i++) {
 			const char = source.sub(i + 1, i + 1);
 
-			if (i === startPos) {
+			if (i === startPosition) {
 				reachedToken = true;
 			}
 
-			if (i === endPos) {
+			if (i === endPosition) {
 				reachedEndToken = true;
 			}
 
@@ -54,21 +59,26 @@ export namespace ZirconDebug {
 				col += 1;
 			}
 		}
+
 		if (reachedToken) {
 			return $dbg(
 				identity<ZirconDebugInformation>({
-					LineAndColumn: [row, col],
 					CodeLine: [lineStart, lineEnd],
-					TokenPosition: [startPos, endPos],
-					TokenLinePosition: [startPos - lineStart, endPos - lineStart],
 					Line: source.sub(lineStart + 1, lineEnd + 1),
+					LineAndColumn: [row, col],
+					TokenLinePosition: [startPosition - lineStart, endPosition - lineStart],
+					TokenPosition: [startPosition, endPosition],
 				}),
 			);
 		}
 	}
 
 	/** @internal */
-	export function GetDebugInformationForToken(source: string, token: Token) {
+	// eslint-disable-next-line max-lines-per-function -- a 2
+	export function GetDebugInformationForToken(
+		source: string,
+		token: Token,
+	): undefined | ZirconDebugInformation {
 		let col = 0;
 		let row = 1;
 		let lineStart = 0;
@@ -86,6 +96,7 @@ export namespace ZirconDebug {
 				if (reachedToken) {
 					break;
 				}
+
 				lineStart = i + 1;
 				row += 1;
 				col = 1;
@@ -97,11 +108,11 @@ export namespace ZirconDebug {
 		if (reachedToken) {
 			return $dbg(
 				identity<ZirconDebugInformation>({
-					LineAndColumn: [row, col],
 					CodeLine: [lineStart, lineEnd],
-					TokenPosition: [token.startPos, token.endPos],
-					TokenLinePosition: [token.startPos - lineStart, token.endPos - lineStart],
 					Line: source.sub(lineStart + 1, lineEnd + 1),
+					LineAndColumn: [row, col],
+					TokenLinePosition: [token.startPos - lineStart, token.endPos - lineStart],
+					TokenPosition: [token.startPos, token.endPos],
 				}),
 			);
 		}
@@ -110,31 +121,33 @@ export namespace ZirconDebug {
 	/** @internal */
 	export function GetMessageForError(
 		source: string,
-		zrError: ZrRuntimeError | ZrParserError,
-	): ZirconiumRuntimeErrorMessage | ZirconiumParserErrorMessage {
-		if (ZirconDebug.IsParserError(zrError)) {
-			const debug = zrError.token ? ZirconDebug.GetDebugInformationForToken(source, zrError.token) : undefined;
+		zrError: ZrParserError | ZrRuntimeError,
+	): ZirconiumParserErrorMessage | ZirconiumRuntimeErrorMessage {
+		if (IsParserError(zrError)) {
+			const debug = zrError.token
+				? GetDebugInformationForToken(source, zrError.token)
+				: undefined;
 
 			return {
-				type: ZirconNetworkMessageType.ZirconiumParserError,
+				code: zrError.code,
+				debug,
+				message: zrError.message,
 				script: "zr",
-				time: DateTime.now().UnixTimestamp,
 				source: debug ? debug.LineAndColumn : undefined,
-				debug,
-				message: zrError.message,
-				code: zrError.code,
-			};
-		} else {
-			const debug = zrError.node ? ZirconDebug.GetDebugInformationForNode(source, zrError.node) : undefined;
-
-			return {
-				type: ZirconNetworkMessageType.ZirconiumRuntimeError,
 				time: DateTime.now().UnixTimestamp,
-				debug,
-				script: "zr",
-				message: zrError.message,
-				code: zrError.code,
+				type: ZirconNetworkMessageType.ZirconiumParserError,
 			};
 		}
+
+		const debug = zrError.node ? GetDebugInformationForNode(source, zrError.node) : undefined;
+
+		return {
+			code: zrError.code,
+			debug,
+			message: zrError.message,
+			script: "zr",
+			time: DateTime.now().UnixTimestamp,
+			type: ZirconNetworkMessageType.ZirconiumRuntimeError,
+		};
 	}
 }

@@ -1,8 +1,8 @@
 import { Players } from "@rbxts/services";
 import ZrPlayerScriptContext from "@rbxts/zirconium/out/Runtime/PlayerScriptContext";
-import {
+
+import type {
 	ZirconClientConfiguration,
-	ZirconClientConfigurationBuilder,
 	ZirconClientScopedGlobal,
 } from "Class/ZirconClientConfigurationBuilder";
 import { ZirconEnum } from "Class/ZirconEnum";
@@ -16,24 +16,29 @@ export namespace ZirconClientRegistryService {
 	/**
 	 * Creates a scripting environment on the client for Zircon.
 	 *
-	 * NOTE: This is 100% insecure because it's on the client, and thus shouldn't use any elevated functions
-	 * (WIP client)
+	 * NOTE: This is 100% insecure because it's on the client, and thus
+	 * shouldn't use any elevated functions (WIP client).
+	 *
 	 * @param configuration
 	 * @hidden @deprecated
 	 */
-	export function Init(configuration: ZirconClientConfiguration) {
+	export function Init(configuration: ZirconClientConfiguration): void {
 		for (const global of configuration.Registry) {
 			globals.push(global);
 		}
+
 		initialized = true;
 
 		if (globals.size() > 0) {
-			ZirconClientStore.dispatch({ type: ConsoleActionName.SetClientExecutionEnabled, enabled: true });
+			ZirconClientStore.dispatch({
+				enabled: true,
+				type: ConsoleActionName.SetClientExecutionEnabled,
+			});
 		}
 	}
 
 	/** @internal */
-	export function GetScriptContextsForLocalPlayer() {
+	export function GetScriptContextsForLocalPlayer(): ZrPlayerScriptContext {
 		const context = new ZrPlayerScriptContext(Players.LocalPlayer);
 		for (const global of globals) {
 			if (global instanceof ZirconFunction) {
@@ -42,6 +47,7 @@ export namespace ZirconClientRegistryService {
 				context.registerGlobal(global.getEnumName(), global);
 			}
 		}
+
 		return context;
 	}
 }

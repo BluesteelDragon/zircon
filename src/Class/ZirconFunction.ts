@@ -1,66 +1,69 @@
 import { LogLevel } from "@rbxts/log";
 import { RunService } from "@rbxts/services";
-import ZrContext from "@rbxts/zirconium/out/Data/Context";
-import { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
-import ZrLuauFunction, { ZrLuauArgument } from "@rbxts/zirconium/out/Data/LuauFunction";
-import ZrPlayerScriptContext from "@rbxts/zirconium/out/Runtime/PlayerScriptContext";
-import { $env } from "rbxts-transform-env";
-import Server from "../Server";
-import { InferArguments, ZirconValidator } from "./ZirconTypeValidator";
-import { ZirconContext } from "./ZirconContext";
-import ZrUndefined from "@rbxts/zirconium/out/Data/Undefined";
-import { $print } from "rbxts-transform-debug";
-import { ZirconNamespace } from "./ZirconNamespace";
+import type ZrContext from "@rbxts/zirconium/out/Data/Context";
+import type { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
+import type { ZrLuauArgument } from "@rbxts/zirconium/out/Data/LuauFunction";
+import ZrLuauFunction from "@rbxts/zirconium/out/Data/LuauFunction";
+import type ZrUndefined from "@rbxts/zirconium/out/Data/Undefined";
+import type ZrPlayerScriptContext from "@rbxts/zirconium/out/Runtime/PlayerScriptContext";
 
-let zirconTypeOf: typeof import("Shared/typeId")["zirconTypeOf"] | undefined;
+import { $print } from "rbxts-transform-debug";
+
+import Server from "../Server";
+import { ZirconContext } from "./ZirconContext";
+import type { InferArguments, ZirconValidator } from "./ZirconTypeValidator";
+
+let zirconTypeOf: (typeof import("Shared/type-id"))["zirconTypeOf"] | undefined;
 
 export function emitArgumentError(
 	func: ZirconFunction<any, any>,
 	context: ZrContext,
-	arg: ZrValue | ZrUndefined,
+	argument: ZrUndefined | ZrValue,
 	index: number,
 	validator: ZirconValidator<unknown, unknown>,
-) {
+): void {
 	const err = typeIs(validator.ErrorMessage, "function")
-		? validator.ErrorMessage(arg, index, func)
+		? validator.ErrorMessage(argument, index, func)
 		: validator.ErrorMessage;
 
 	// Have to dynamically import
 	if (zirconTypeOf === undefined) {
-		zirconTypeOf = import("Shared/typeId").expect().zirconTypeOf;
+		zirconTypeOf = import("Shared/type-id").expect().zirconTypeOf;
 	}
 
 	Server.Log.WriteStructured({
-		SourceContext: `(function '${func.GetName()}')`,
+		ArgIndex: index + 1,
+		ArgType: zirconTypeOf(argument),
+		FunctionArgs: func.GetArgumentTypes(),
+		FunctionName: func.GetName(),
+		FunctionVariadicArg: func.GetVariadicType(),
 		Level: LogLevel.Error,
+		LogToPlayer: context.getExecutor(),
+		SourceContext: `(function '${func.GetName()}')`,
 		Template: `Argument #{ArgIndex} to '{FunctionName}': ${err ?? "Expected {ValidatorType}, got {ArgType}"}`,
 		Timestamp: DateTime.now().ToIsoDate(),
-		FunctionName: func.GetName(),
-		FunctionArgs: func.GetArgumentTypes(),
-		FunctionVariadicArg: func.GetVariadicType(),
-		LogToPlayer: context.getExecutor(),
-		ArgIndex: index + 1,
 		ValidatorType: validator.Type,
-		ArgType: zirconTypeOf(arg),
 	});
 }
 
 export interface ZirconFunctionMetadata {
+	readonly ArgumentValidators: Array<ZirconValidator<unknown, unknown>>;
 	readonly Description?: string;
-	readonly ArgumentValidators: ZirconValidator<unknown, unknown>[];
-	readonly VariadicValidator?: ZirconValidator<unknown, unknown>;
 	readonly HasVariadic: boolean;
+	readonly VariadicValidator?: ZirconValidator<unknown, unknown>;
 }
 export class ZirconFunction<
-	V extends readonly ZirconValidator<unknown, unknown>[],
-	R extends ZrValue | void
+	V extends ReadonlyArray<ZirconValidator<unknown, unknown>>,
+	R extends void | ZrValue,
 > extends ZrLuauFunction {
-	public constructor(
-		private name: string,
-		private zirconCallback: (context: ZirconContext, ...args: InferArguments<V>) => R,
-		private metadata: ZirconFunctionMetadata,
+	// eslint-disable-next-line max-lines-per-function -- a 5
+	constructor(
+		private readonly name: string,
+		private readonly zirconCallback: (context: ZirconContext, ...args: InferArguments<V>) => R,
+		private readonly metadata: ZirconFunctionMetadata,
 	) {
-		const { VariadicValidator, ArgumentValidators } = metadata;
+		const { ArgumentValidators, VariadicValidator } = metadata;
+		// eslint-disable-next-line max-lines-per-function -- a 6
 		super((context, ...args) => {
 			// We'll need to type check all the arguments to ensure they're valid
 			// and transform as appropriate for the user side
@@ -69,18 +72,18 @@ export class ZirconFunction<
 
 			let transformedArguments = new Array<defined>();
 			if (ArgumentValidators.size() > 0) {
-				for (let i = 0; i < ArgumentValidators.size(); i++) {
-					const validator = ArgumentValidators[i];
-					const argument = args[i];
+				for (let index = 0; index < ArgumentValidators.size(); index++) {
+					const validator = ArgumentValidators[index];
+					const argument = args[index];
 					if (validator && validator.Validate(argument, executor)) {
 						if (validator.Transform !== undefined) {
-							transformedArguments[i] = validator.Transform(argument, executor) as defined;
+							transformedArguments[index] = validator.Transform(argument, executor) as defined;
 						} else {
-							transformedArguments[i] = argument;
+							transformedArguments[index] = argument;
 						}
 					} else {
 						if (RunService.IsServer()) {
-							emitArgumentError(this, context, argument, i, validator);
+							emitArgumentError(this, context, argument, index, validator);
 							$print("Got", argument);
 						}
 						return;
@@ -91,17 +94,17 @@ export class ZirconFunction<
 			}
 
 			if (args.size() > ArgumentValidators.size() && VariadicValidator) {
-				for (let i = ArgumentValidators.size(); i < args.size(); i++) {
-					const argument = args[i];
+				for (let index = ArgumentValidators.size(); index < args.size(); index++) {
+					const argument = args[index];
 					if (VariadicValidator.Validate(argument, executor)) {
 						if (VariadicValidator.Transform !== undefined) {
-							transformedArguments[i] = VariadicValidator.Transform(argument, executor) as defined;
+							transformedArguments[index] = VariadicValidator.Transform(argument, executor) as defined;
 						} else {
-							transformedArguments[i] = argument;
+							transformedArguments[index] = argument;
 						}
 					} else {
 						if (RunService.IsServer()) {
-							emitArgumentError(this, context, argument, i, VariadicValidator);
+							emitArgumentError(this, context, argument, index, VariadicValidator);
 							$print("Got", argument);
 						}
 						return;
@@ -112,47 +115,46 @@ export class ZirconFunction<
 			/// This is not pretty, I know.
 			return this.zirconCallback(
 				new ZirconContext(context, this),
-				...((transformedArguments as unknown) as InferArguments<V>),
+				...(transformedArguments as unknown as InferArguments<V>),
 			);
 		});
 	}
 
-	public GetName() {
+	public GetName(): string {
 		return this.name;
 	}
 
-	public GetArgumentTypes() {
+	public GetArgumentTypes(): Array<string> {
 		const { ArgumentValidators } = this.metadata;
-		const args = ArgumentValidators.map((v) => v.Type);
-		return args;
+		return ArgumentValidators.map(validator => validator.Type);
 	}
 
-	public GetVariadicType() {
+	public GetVariadicType(): string | undefined {
 		const { VariadicValidator } = this.metadata;
 		return VariadicValidator?.Type;
 	}
 
 	/** @internal */
-	public RegisterToContext(context: ZrPlayerScriptContext) {
+	public RegisterToContext(context: ZrPlayerScriptContext): void {
 		context.registerGlobal(this.name, this);
 	}
 
-	public GetDescription() {
+	public GetDescription(): string | undefined {
 		return this.metadata.Description;
 	}
 
-	public toString() {
-		const argTypes = this.GetArgumentTypes().map((typeName, argIndex) => `${typeName}`);
-		const varadicType = this.GetVariadicType();
-		if (varadicType !== undefined) {
-			argTypes.push("..." + varadicType);
+	public toString(): string {
+		const argumentTypes = this.GetArgumentTypes().map(typeName => tostring(typeName));
+		const variadicType = this.GetVariadicType();
+		if (variadicType !== undefined) {
+			argumentTypes.push("..." + variadicType);
 		}
 
 		return (
 			`${this.metadata.Description !== undefined ? `/* ${this.metadata.Description} */` : ""} function ${
 				this.name
 			}(` +
-			argTypes.join(", ") +
+			argumentTypes.join(", ") +
 			") { [ZirconFunction] }"
 		);
 	}
