@@ -1,27 +1,30 @@
 import Maid from "@rbxts/maid";
 import Roact from "@rbxts/roact";
 import { Players } from "@rbxts/services";
+
 import ThemeContext from "Client/UIKit/ThemeContext";
-import ZirconIcon, { IconEnum } from "./Icon";
+
+import type { IconEnum } from "./Icon";
+import ZirconIcon from "./Icon";
 import Padding from "./Padding";
 import ScrollView from "./ScrollView";
 
 interface ItemData<T> {
+	Icon?: IconEnum;
 	Id: T;
 	SelectedText?: string;
 	Text: string;
-	Icon?: IconEnum;
 	TextColor3?: Color3;
 }
 
 interface DropdownProps<T = string> {
-	readonly Items: Array<ItemData<T>>;
-	readonly SelectedItemIndex?: number;
-	readonly SelectedItemId?: T;
-	Size?: UDim2;
-	Position?: UDim2;
 	Disabled?: boolean;
+	readonly Items: Array<ItemData<T>>;
 	ItemSelected?: (item: ItemData<T>) => void;
+	Position?: UDim2;
+	readonly SelectedItemId?: T;
+	readonly SelectedItemIndex?: number;
+	Size?: UDim2;
 }
 interface DropdownState {
 	active: boolean;
@@ -29,20 +32,20 @@ interface DropdownState {
 }
 
 export default class Dropdown<T = string> extends Roact.Component<DropdownProps<T>, DropdownState> {
-	private dropdownRef = Roact.createRef<Frame>();
-	private maid = new Maid();
+	private readonly dropdownRef = Roact.createRef<Frame>();
+	private readonly maid = new Maid();
 
-	private portalPosition: Roact.RoactBinding<UDim2>;
-	private setPortalPosition: Roact.RoactBindingFunc<UDim2>;
+	private readonly portalPosition: Roact.RoactBinding<UDim2>;
+	private readonly portalSizeX: Roact.RoactBinding<number>;
 
-	private portalSizeX: Roact.RoactBinding<number>;
-	private setPortalSizeX: Roact.RoactBindingFunc<number>;
+	private readonly setPortalPosition: Roact.RoactBindingFunc<UDim2>;
+	private readonly setPortalSizeX: Roact.RoactBindingFunc<number>;
 
-	public constructor(props: DropdownProps<T>) {
+	constructor(props: DropdownProps<T>) {
 		super(props);
 		this.state = {
-			selectedItemIndex: props.SelectedItemIndex !== undefined ? props.SelectedItemIndex : 0,
 			active: false,
+			selectedItemIndex: props.SelectedItemIndex !== undefined ? props.SelectedItemIndex : 0,
 		};
 
 		if (props.SelectedItemId !== undefined) {
@@ -56,22 +59,26 @@ export default class Dropdown<T = string> extends Roact.Component<DropdownProps<
 		[this.portalSizeX, this.setPortalSizeX] = Roact.createBinding(0);
 	}
 
-	public setPortalPositionRelativeTo(frame: Frame) {
+	public setPortalPositionRelativeTo(frame: Frame): void {
 		const { AbsolutePosition, AbsoluteSize } = frame;
-		this.setPortalPosition(new UDim2(0, AbsolutePosition.X, 0, AbsolutePosition.Y + AbsoluteSize.Y));
+		this.setPortalPosition(
+			new UDim2(0, AbsolutePosition.X, 0, AbsolutePosition.Y + AbsoluteSize.Y),
+		);
 		this.setPortalSizeX(AbsoluteSize.X);
 	}
 
-	public didUpdate(prevProps: DropdownProps<T>) {
-		if (prevProps.SelectedItemId !== this.props.SelectedItemId) {
-			const selectedItemIndex = this.props.Items.findIndex((f) => f.Id === this.props.SelectedItemId);
-			if (selectedItemIndex !== -1) {
-				this.setState({ selectedItemIndex });
-			}
+	public didUpdate(previousProps: DropdownProps<T>): void {
+		if (previousProps.SelectedItemId === this.props.SelectedItemId) {
+			return;
+		}
+
+		const selectedItemIndex = this.props.Items.findIndex((f) => f.Id === this.props.SelectedItemId);
+		if (selectedItemIndex !== -1) {
+			this.setState({ selectedItemIndex });
 		}
 	}
 
-	public didMount() {
+	public didMount(): void {
 		const frame = this.dropdownRef.getValue();
 		if (frame) {
 			this.maid.GiveTask(
@@ -90,55 +97,71 @@ export default class Dropdown<T = string> extends Roact.Component<DropdownProps<
 		}
 	}
 
-	public willUnmount() {
+	public willUnmount(): void {
 		this.maid.DoCleaning();
 	}
 
-	public renderDropdownItems() {
+	// eslint-disable-next-line max-lines-per-function -- a 15
+	public renderDropdownItems(): Array<Roact.Element> {
 		const { selectedItemIndex } = this.state;
-		return this.props.Items.map((item, idx) => {
+		// eslint-disable-next-line max-lines-per-function -- a 16
+		return this.props.Items.map((item, index) => {
 			return (
 				<ThemeContext.Consumer
-					render={(theme) => (
-						<frame
-							Size={new UDim2(1, 0, 0, 30)}
-							BackgroundColor3={
-								selectedItemIndex === idx ? theme.PrimarySelectColor3 : theme.SecondaryBackgroundColor3
-							}
-							BorderSizePixel={0}
-						>
-							<frame Size={new UDim2(1, 0, 1, 0)} BackgroundTransparency={1}>
-								<Padding Padding={{ Right: 20, Horizontal: 5 }} />
-								{item.Icon && <ZirconIcon Icon={item.Icon} Position={new UDim2(0, 0, 0.5, -8)} />}
-								<textbutton
-									Font={theme.Font}
-									TextXAlignment="Left"
-									TextSize={15}
-									BackgroundTransparency={1}
-									Size={new UDim2(1, 0, 1, 0)}
-									Position={item.Icon ? new UDim2(0, 20, 0, 0) : new UDim2()}
-									TextColor3={theme.PrimaryTextColor3}
-									Text={item.Text}
-									Event={{
-										MouseButton1Click: () => {
-											this.setState({ selectedItemIndex: idx, active: false });
-											if (this.props.ItemSelected !== undefined) {
-												this.props.ItemSelected(item);
-											}
-										},
-									}}
-								/>
+					// eslint-disable-next-line max-lines-per-function -- a 17
+					render={theme => {
+						return (
+							<frame
+								Size={new UDim2(1, 0, 0, 30)}
+								BackgroundColor3={
+									selectedItemIndex === index
+										? theme.PrimarySelectColor3
+										: theme.SecondaryBackgroundColor3
+								}
+								BorderSizePixel={0}
+							>
+								<frame Size={new UDim2(1, 0, 1, 0)} BackgroundTransparency={1}>
+									<Padding Padding={{ Horizontal: 5, Right: 20 }} />
+									{item.Icon && (
+										<ZirconIcon
+											Icon={item.Icon}
+											Position={new UDim2(0, 0, 0.5, -8)}
+										/>
+									)}
+									<textbutton
+										Font={theme.Font}
+										TextXAlignment="Left"
+										TextSize={15}
+										BackgroundTransparency={1}
+										Size={new UDim2(1, 0, 1, 0)}
+										Position={item.Icon ? new UDim2(0, 20, 0, 0) : new UDim2()}
+										TextColor3={theme.PrimaryTextColor3}
+										Text={item.Text}
+										Event={{
+											MouseButton1Click: () => {
+												this.setState({
+													active: false,
+													selectedItemIndex: index,
+												});
+												if (this.props.ItemSelected !== undefined) {
+													this.props.ItemSelected(item);
+												}
+											},
+										}}
+									/>
+								</frame>
 							</frame>
-						</frame>
-					)}
+						);
+					}}
 				/>
 			);
 		});
 	}
 
-	public renderDropdown() {
+	// eslint-disable-next-line max-lines-per-function -- a 17
+	public renderDropdown(): Roact.Element {
 		const { active } = this.state;
-		if (active === false) {
+		if (!active) {
 			return <Roact.Fragment />;
 		}
 
@@ -146,21 +169,25 @@ export default class Dropdown<T = string> extends Roact.Component<DropdownProps<
 
 		const portal = (
 			<ThemeContext.Consumer
-				render={(theme) => (
-					<frame
-						Key="DropdownPortal"
-						// BackgroundTransparency={1}
-						BackgroundColor3={theme.PrimaryBackgroundColor3}
-						BorderColor3={theme.SecondaryBackgroundColor3}
-						Position={this.portalPosition}
-						Size={this.portalSizeX.map((x) => {
-							return new UDim2(0, x, 0, activeSizeY);
-						})}
-						Event={{ MouseLeave: () => this.setState({ active: false }) }}
-					>
-						<ScrollView>{this.renderDropdownItems()}</ScrollView>
-					</frame>
-				)}
+				render={theme => {
+					return (
+						<frame
+							Key="DropdownPortal"
+							// BackgroundTransparency={1}
+							BackgroundColor3={theme.PrimaryBackgroundColor3}
+							BorderColor3={theme.SecondaryBackgroundColor3}
+							Position={this.portalPosition}
+							Size={this.portalSizeX.map(x => new UDim2(0, x, 0, activeSizeY))}
+							Event={{
+								MouseLeave: () => {
+									this.setState({ active: false });
+								},
+							}}
+						>
+							<ScrollView>{this.renderDropdownItems()}</ScrollView>
+						</frame>
+					);
+				}}
 			/>
 		);
 
@@ -173,8 +200,9 @@ export default class Dropdown<T = string> extends Roact.Component<DropdownProps<
 		);
 	}
 
-	public render() {
-		const { Items, Disabled, Size = new UDim2(0, 150, 0, 30), Position } = this.props;
+	// eslint-disable-next-line max-lines-per-function -- a 18
+	public render(): Roact.Element {
+		const { Disabled, Items, Position, Size = new UDim2(0, 150, 0, 30) } = this.props;
 		const { selectedItemIndex } = this.state;
 
 		const item = Items[selectedItemIndex];
@@ -182,49 +210,54 @@ export default class Dropdown<T = string> extends Roact.Component<DropdownProps<
 
 		return (
 			<ThemeContext.Consumer
-				render={(theme) => (
-					<frame
-						BackgroundColor3={theme.SecondaryBackgroundColor3}
-						BorderColor3={theme.PrimaryBackgroundColor3}
-						Size={Size}
-						Position={Position}
-						Ref={this.dropdownRef}
-					>
-						<frame Key="Content" Size={new UDim2(1, -25, 1, 0)} BackgroundTransparency={1}>
-							<Padding Padding={{ Horizontal: 10 }} />
-							{item.Icon && <ZirconIcon Icon={item.Icon} Position={new UDim2(0, 0, 0.5, -8)} />}
-							<textbutton
-								Size={new UDim2(1, 0, 1, 0)}
-								Position={item.Icon ? new UDim2(0, 20, 0, 0) : new UDim2()}
-								BackgroundTransparency={1}
-								Font={theme.Font}
-								TextSize={15}
-								TextXAlignment="Left"
-								TextColor3={
-									Disabled
-										? theme.PrimaryDisabledColor3
-										: item.TextColor3
-										? item.TextColor3
-										: theme.PrimaryTextColor3
+				// eslint-disable-next-line max-lines-per-function -- a 19
+				render={theme => {
+					return (
+						<frame
+							BackgroundColor3={theme.SecondaryBackgroundColor3}
+							BorderColor3={theme.PrimaryBackgroundColor3}
+							Size={Size}
+							Position={Position}
+							Ref={this.dropdownRef}
+						>
+							<frame Key="Content" Size={new UDim2(1, -25, 1, 0)} BackgroundTransparency={1}>
+								<Padding Padding={{ Horizontal: 10 }} />
+								{item.Icon && <ZirconIcon Icon={item.Icon} Position={new UDim2(0, 0, 0.5, -8)} />}
+								<textbutton
+									Size={new UDim2(1, 0, 1, 0)}
+									Position={item.Icon ? new UDim2(0, 20, 0, 0) : new UDim2()}
+									BackgroundTransparency={1}
+									Font={theme.Font}
+									TextSize={15}
+									TextXAlignment="Left"
+									TextColor3={
+										Disabled
+											? theme.PrimaryDisabledColor3
+											: item.TextColor3
+											? item.TextColor3
+											: theme.PrimaryTextColor3
+									}
+									// TextStrokeTransparency={0.5}
+									Text={item.SelectedText ?? item.Text}
+									Event={{
+										MouseButton1Click: () => !Disabled && this.setState({ active: !this.state.active }),
+									}}
+								/>
+							</frame>
+							<imagelabel
+								Image="rbxassetid://2657038128"
+								ImageColor3={
+									Disabled ? theme.PrimaryDisabledColor3 : theme.PrimaryTextColor3
 								}
-								// TextStrokeTransparency={0.5}
-								Text={item.SelectedText ?? item.Text}
-								Event={{
-									MouseButton1Click: () => !Disabled && this.setState({ active: !this.state.active }),
-								}}
+								Position={new UDim2(1, -25, 0, 5)}
+								BackgroundTransparency={1}
+								Rotation={this.state.active ? 0 : 180}
+								Size={new UDim2(0, 20, 0, 20)}
 							/>
+							{this.renderDropdown()}
 						</frame>
-						<imagelabel
-							Image="rbxassetid://2657038128"
-							ImageColor3={Disabled ? theme.PrimaryDisabledColor3 : theme.PrimaryTextColor3}
-							Position={new UDim2(1, -25, 0, 5)}
-							BackgroundTransparency={1}
-							Rotation={this.state.active ? 0 : 180}
-							Size={new UDim2(0, 20, 0, 20)}
-						/>
-						{this.renderDropdown()}
-					</frame>
-				)}
+					);
+				}}
 			/>
 		);
 	}

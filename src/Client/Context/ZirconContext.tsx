@@ -1,7 +1,9 @@
+/* eslint-disable max-classes-per-file -- We'll evaluate that later */
 import Roact from "@rbxts/roact";
-import { ZirconClientDispatchService } from "../../Services/ClientDispatchService";
-import { ZirconClientRegistryService } from "../../Services/ClientRegistryService";
+
 import { ZirconClient } from "../../index";
+import type { ZirconClientDispatchService } from "../../Services/ClientDispatchService";
+import type { ZirconClientRegistryService } from "../../Services/ClientRegistryService";
 
 interface Contexts {
 	_zrso4dispatcher: ZirconClientDispatchService;
@@ -9,19 +11,19 @@ interface Contexts {
 }
 
 class ZirconProvider extends Roact.Component {
-	private __addContext!: <TKey extends keyof Contexts>(
+	private readonly __addContext!: <TKey extends keyof Contexts>(
 		this: ZirconProvider,
 		key: TKey,
 		value: Contexts[TKey],
 	) => void;
 
-	public constructor(props: {}) {
+	constructor(props: {}) {
 		super(props);
 		this.__addContext("_zrso4dispatcher", ZirconClient.Dispatch);
 		this.__addContext("_zrso4registry", ZirconClient.Registry);
 	}
 
-	public render() {
+	public render(): Roact.Element {
 		return <Roact.Fragment>{this.props[Roact.Children]}</Roact.Fragment>;
 	}
 }
@@ -30,15 +32,18 @@ interface ZirconConsumerProps {
 	render: (dispatcher: ZirconClientDispatchService) => Roact.Element | undefined;
 }
 class ZirconConsumer extends Roact.Component<ZirconConsumerProps> {
-	private __getContext!: <TKey extends keyof Contexts>(this: ZirconConsumer, key: TKey) => Contexts[TKey];
-	private dispatcher: ZirconClientDispatchService;
-	private registry: ZirconClientRegistryService;
-	public constructor(props: ZirconConsumerProps) {
+	private readonly __getContext!: <TKey extends keyof Contexts>(
+		this: ZirconConsumer,
+		key: TKey,
+	) => Contexts[TKey];
+
+	private readonly dispatcher: ZirconClientDispatchService;
+	constructor(props: ZirconConsumerProps) {
 		super(props);
 		this.dispatcher = this.__getContext("_zrso4dispatcher");
-		this.registry = this.__getContext("_zrso4registry");
 	}
-	public render() {
+
+	public render(): Roact.Element {
 		return <Roact.Fragment>{this.props.render(this.dispatcher)}</Roact.Fragment>;
 	}
 }

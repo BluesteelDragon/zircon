@@ -1,42 +1,39 @@
-import { LogEvent } from "@rbxts/log";
-import {
-	ZirconStandardOutput,
-	ZirconiumRuntimeErrorMessage,
+import type { LogEvent } from "@rbxts/log";
+
+import type {
 	ZirconiumParserErrorMessage,
-	ZirconLogOutput,
+	ZirconiumRuntimeErrorMessage,
 	ZirconLogErrorOutput,
-	ZirconErrorOutput,
+	ZirconLogOutput,
+	ZirconStandardOutput,
 } from "Shared/Remotes";
-import { formatParse, formatTokens, formatTokensPlain } from "./Format";
+
+import { formatParse, formatTokensPlain } from "./Format";
 
 export const enum ZirconContext {
 	Server,
 	Client,
 }
 
-export type ZirconTag = string | Instance | { toString(): string };
+export type ZirconTag = { toString(): string } | Instance | string;
 export interface ZirconLoggable {
 	toString(): string;
 }
 
 export interface ZirconDebugInfo {
-	Source: string;
 	LineNumber: number;
 	Name: string;
+	Source: string;
 }
 
-/**
- * Extra logging data relating to the specified log message
- */
+/** Extra logging data relating to the specified log message. */
 export interface ZirconLogData {
 	/**
-	 * The player this message relates to
-	 */
-	Player?: Player;
-	/**
-	 * Key value pairs of metadata set by the developer. This will show in the detailed log view.
+	 * Key value pairs of metadata set by the developer. This will show in the
+	 * detailed log view.
 	 *
 	 * Will layout like:
+	 *
 	 * ```
 	 * KEY1		VALUE1
 	 * KEY2		VALUE2
@@ -44,22 +41,22 @@ export interface ZirconLogData {
 	 * ```
 	 */
 	Attributes?: Record<string, defined>;
+	CallDebugInfo?: ZirconDebugInfo;
 
-	Variables: Array<unknown>;
+	/** Function stack details. */
+	FunctionStack?: Array<ZirconDebugInfo>;
+
+	/** The player this message relates to. */
+	Player?: Player;
 
 	/**
 	 * The stack trace of this message.
 	 *
-	 * This is populated by default via Zircon
+	 * This is populated by default via Zircon.
 	 */
-	StackTrace?: string[];
+	StackTrace?: Array<string>;
 
-	/**
-	 * Function stack details
-	 */
-	FunctionStack?: ZirconDebugInfo[];
-
-	CallDebugInfo?: ZirconDebugInfo;
+	Variables: Array<unknown>;
 }
 
 export enum ZirconLogLevel {
@@ -72,87 +69,103 @@ export enum ZirconLogLevel {
 }
 
 export const enum ZirconMessageType {
-	ZirconiumOutput = "zr:output",
+	LogOutputMessage = "log:output",
+	PlainText = "plain",
+	StructuredError = "slog:err",
+	StructuredLog = "slog:output",
 	ZirconiumError = "zr:error",
 	ZirconiumExecutionMessage = "zr:execute",
-	/** @deprecated */
-	ZirconLogOutputMesage = "zirclog:message",
+	ZirconiumOutput = "zr:output",
 	/** @deprecated */
 	ZirconLogErrorMessage = "zirclog:error",
-	LogOutputMessage = "log:output",
-	StructuredLog = "slog:output",
-	StructuredError = "slog:err",
-	PlainText = "plain",
+	/** @deprecated */
+	ZirconLogOutputMessage = "zirclog:message",
 }
 
 export function isContextMessage(
 	message: ConsoleMessage,
-): message is ZrOutputMessage | ZrErrorMessage | ZirconLogMessage | ZirconLogError | ZirconStructuredLogMessage {
+): message is
+	| ZirconLogError
+	| ZirconLogMessage
+	| ZirconStructuredLogMessage
+	| ZrErrorMessage
+	| ZrOutputMessage {
 	return (
 		message.type === ZirconMessageType.ZirconLogErrorMessage ||
-		message.type === ZirconMessageType.ZirconLogOutputMesage ||
+		message.type === ZirconMessageType.ZirconLogOutputMessage ||
 		message.type === ZirconMessageType.ZirconiumOutput ||
 		message.type === ZirconMessageType.ZirconiumError ||
 		message.type === ZirconMessageType.StructuredLog
 	);
 }
 
-export function getMessageText(message: ConsoleMessage) {
-	if (message.type === ZirconMessageType.ZirconLogOutputMesage) {
-		const { message: outputMessage, data } = message.message;
+// eslint-disable-next-line max-lines-per-function -- a 9
+export function getMessageText(message: ConsoleMessage): string {
+	switch (message.type) {
+		case ZirconMessageType.ZirconLogOutputMessage: {
+			const { data, message: outputMessage } = message.message;
 
-		const formatted =
-			(data.Variables?.size() ?? 0) > 0
+			return (data.Variables?.size() ?? 0) > 0
 				? formatTokensPlain(formatParse(outputMessage), data.Variables)
 				: outputMessage;
-
-		return formatted;
-	} else if (message.type === ZirconMessageType.ZirconLogErrorMessage) {
-		const { message: outputMessage, data } = message.error;
-		const formatted =
-			(data.Variables?.size() ?? 0) > 0
+		}
+		case ZirconMessageType.ZirconLogErrorMessage: {
+			const { data, message: outputMessage } = message.error;
+			return (data.Variables?.size() ?? 0) > 0
 				? formatTokensPlain(formatParse(outputMessage), data.Variables)
 				: outputMessage;
-
-		return formatted;
-	} else if (message.type === ZirconMessageType.ZirconiumOutput) {
-		return message.message.message;
-	} else if (message.type === ZirconMessageType.ZirconiumError) {
-		return message.error.message;
-	} else if (message.type === ZirconMessageType.ZirconiumExecutionMessage) {
-		return message.source;
-	} else if (message.type === ZirconMessageType.PlainText) {
-		return message.message;
-	} else if (message.type === ZirconMessageType.StructuredLog) {
-		return message.data.Template;
-	} else {
-		return "";
+		}
+		case ZirconMessageType.ZirconiumOutput: {
+			return message.message.message;
+		}
+		case ZirconMessageType.ZirconiumError: {
+			return message.error.message;
+		}
+		case ZirconMessageType.ZirconiumExecutionMessage: {
+			return message.source;
+		}
+		case ZirconMessageType.PlainText: {
+			return message.message;
+		}
+		case ZirconMessageType.StructuredLog: {
+			return message.data.Template;
+		}
+		default: {
+			return "";
+		}
 	}
 }
 
 export function isLogMessage(
 	message: ConsoleMessage,
-): message is ZirconLogMessage | ZirconLogError | ZirconStructuredLogMessage {
+): message is ZirconLogError | ZirconLogMessage | ZirconStructuredLogMessage {
 	return (
 		message.type === ZirconMessageType.ZirconLogErrorMessage ||
-		message.type === ZirconMessageType.ZirconLogOutputMesage ||
+		message.type === ZirconMessageType.ZirconLogOutputMessage ||
 		message.type === ZirconMessageType.StructuredLog
 	);
 }
 
-export function getLogLevel(message: ConsoleMessage) {
-	if (message.type === ZirconMessageType.ZirconLogOutputMesage) {
-		return message.message.level;
-	} else if (message.type === ZirconMessageType.StructuredLog) {
-		return (message.data.Level as unknown) as ZirconLogLevel;
-	} else if (message.type === ZirconMessageType.ZirconLogErrorMessage) {
-		return message.error.level;
-	} else if (message.type === ZirconMessageType.ZirconiumError) {
-		return ZirconLogLevel.Error;
-	} else if (message.type === ZirconMessageType.ZirconiumOutput) {
-		return ZirconLogLevel.Info;
-	} else {
-		return ZirconLogLevel.Info;
+export function getLogLevel(message: ConsoleMessage): ZirconLogLevel {
+	switch (message.type) {
+		case ZirconMessageType.ZirconLogOutputMessage: {
+			return message.message.level;
+		}
+		case ZirconMessageType.StructuredLog: {
+			return message.data.Level as unknown as ZirconLogLevel;
+		}
+		case ZirconMessageType.ZirconLogErrorMessage: {
+			return message.error.level;
+		}
+		case ZirconMessageType.ZirconiumError: {
+			return ZirconLogLevel.Error;
+		}
+		case ZirconMessageType.ZirconiumOutput: {
+			return ZirconLogLevel.Info;
+		}
+		default: {
+			return ZirconLogLevel.Info;
+		}
 	}
 }
 
@@ -161,56 +174,56 @@ interface ZirconContextMessage {
 }
 
 export interface ZrOutputMessage extends ZirconContextMessage {
-	readonly type: ZirconMessageType.ZirconiumOutput;
-	readonly script?: string;
 	readonly message: ZirconStandardOutput;
+	readonly script?: string;
+	readonly type: ZirconMessageType.ZirconiumOutput;
 }
 export interface ConsolePlainMessage {
-	readonly type: ZirconMessageType.PlainText;
 	readonly message: string;
+	readonly type: ZirconMessageType.PlainText;
 }
 
 export interface ConsoleSyntaxMessage {
-	readonly type: ZirconMessageType.ZirconiumExecutionMessage;
 	readonly source: string;
+	readonly type: ZirconMessageType.ZirconiumExecutionMessage;
 }
 
 export interface ZrErrorMessage extends ZirconContextMessage {
-	readonly type: ZirconMessageType.ZirconiumError;
+	readonly error: ZirconiumParserErrorMessage | ZirconiumRuntimeErrorMessage;
 	readonly script?: string;
-	readonly error: ZirconiumRuntimeErrorMessage | ZirconiumParserErrorMessage;
+	readonly type: ZirconMessageType.ZirconiumError;
 }
 export interface ConsoleLuauError extends ZirconContextMessage {
-	readonly type: "luau:error";
 	readonly error: string;
-	readonly stackTrace?: string[];
+	readonly stackTrace?: Array<string>;
+	readonly type: "luau:error";
 }
 
 /** @deprecated */
 export interface ZirconLogMessage extends ZirconContextMessage {
-	readonly type: ZirconMessageType.ZirconLogOutputMesage;
 	readonly message: ZirconLogOutput;
+	readonly type: ZirconMessageType.ZirconLogOutputMessage;
 }
 
 export interface ZirconStructuredLogMessage extends ZirconContextMessage {
-	readonly type: ZirconMessageType.StructuredLog;
 	readonly data: LogEvent;
+	readonly type: ZirconMessageType.StructuredLog;
 }
 
 export interface ZirconLogErrorData {}
 
 /** @deprecated */
 export interface ZirconLogError extends ZirconContextMessage {
-	readonly type: ZirconMessageType.ZirconLogErrorMessage;
 	readonly error: ZirconLogErrorOutput;
+	readonly type: ZirconMessageType.ZirconLogErrorMessage;
 }
 
 export type ConsoleMessage =
-	| ZrOutputMessage
-	| ZrErrorMessage
-	| ConsolePlainMessage
 	| ConsoleLuauError
+	| ConsolePlainMessage
 	| ConsoleSyntaxMessage
-	| ZirconLogMessage
 	| ZirconLogError
-	| ZirconStructuredLogMessage;
+	| ZirconLogMessage
+	| ZirconStructuredLogMessage
+	| ZrErrorMessage
+	| ZrOutputMessage;

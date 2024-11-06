@@ -1,15 +1,19 @@
-import { LogEvent, LogLevel } from "@rbxts/log";
-import { ZrParserError, ZrScriptMode, ZrScriptVersion } from "@rbxts/zirconium/out/Ast/Parser";
-import { ZrRuntimeError } from "@rbxts/zirconium/out/Runtime/Runtime";
-import ZrScript from "@rbxts/zirconium/out/Runtime/Script";
+import type { LogEvent } from "@rbxts/log";
+import { LogLevel } from "@rbxts/log";
+import type { ZrParserError } from "@rbxts/zirconium/out/Ast/Parser";
+import { ZrScriptMode, ZrScriptVersion } from "@rbxts/zirconium/out/Ast/Parser";
+import type { ZrRuntimeError } from "@rbxts/zirconium/out/Runtime/Runtime";
+import type ZrScript from "@rbxts/zirconium/out/Runtime/Script";
+
 import ZirconClientStore from "Client/BuiltInConsole/Store";
 import { ConsoleActionName } from "Client/BuiltInConsole/Store/_reducers/ConsoleReducer";
-import { ZirconContext, ZirconMessageType, ZrErrorMessage } from "Client/Types";
+import { ZirconContext, ZirconMessageType } from "Client/Types";
 import { ZirconClient } from "index";
 import { GetCommandService } from "Services";
 import { ZirconDebug } from "Shared/Debugging";
-import Remotes, { RemoteId, ZirconNetworkMessageType } from "../Shared/Remotes";
-import { ZirconClientRegistryService } from "./ClientRegistryService";
+
+import Remotes, { RemoteId } from "../Shared/Remotes";
+import type { ZirconClientRegistryService } from "./ClientRegistryService";
 
 export enum DispatchContext {
 	Server,
@@ -25,43 +29,46 @@ export namespace ZirconClientDispatchService {
 	export const dependencies = ["ClientRegistryService"];
 
 	const DispatchToServer = Remotes.Client.WaitFor(RemoteId.DispatchToServer).expect();
-	export function Dispatch(input: string) {
+	export function Dispatch(input: string): void {
 		DispatchToServer.SendToServer(input);
 	}
 
-	function Log(data: LogEvent) {
+	function Log(data: LogEvent): void {
 		ZirconClientStore.dispatch({
-			type: ConsoleActionName.AddOutput,
 			message: {
-				type: ZirconMessageType.StructuredLog,
-				data,
 				context: ZirconContext.Client,
+				data,
+				type: ZirconMessageType.StructuredLog,
 			},
+			type: ConsoleActionName.AddOutput,
 		});
 	}
 
 	/** @internal */
-	export async function ExecuteScript(text: string) {
+	// eslint-disable-next-line max-lines-per-function -- a 8
+	export async function ExecuteScript(text: string): Promise<void> {
 		const Registry = GetCommandService("ClientRegistryService");
 		return Promise.defer<ZrScript>((resolve, reject) => {
 			const mainScript = Registry.GetScriptContextsForLocalPlayer();
-			const source = mainScript.parseSource(text, ZrScriptVersion.Zr2022, ZrScriptMode.CommandLike);
+			const source = mainScript.parseSource(
+				text,
+				ZrScriptVersion.Zr2022,
+				ZrScriptMode.CommandLike,
+			);
 			if (source.isOk()) {
 				resolve(mainScript.createScript(source.okValue));
 			} else {
 				reject(source.unwrapErr().errors);
 			}
 		})
-			.then((scr) => {
-				return scr.execute();
-			})
-			.then((output) => {
+			.then(async scr => scr.execute())
+			.then(output => {
 				output.forEach((message) => {
 					Log({
-						Template: message.gsub("{(.-)}", "{{%1}}")[0],
-						Timestamp: DateTime.now().ToIsoDate(),
 						Level: LogLevel.Information,
 						SourceContext: "Client Script",
+						Template: message.gsub("{(.-)}", "{{%1}}")[0],
+						Timestamp: DateTime.now().ToIsoDate(),
 					});
 				});
 			})

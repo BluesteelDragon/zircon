@@ -1,59 +1,52 @@
 import Maid from "@rbxts/maid";
 import Roact from "@rbxts/roact";
-import Snapdragon, { SnapdragonController, SnapMargin } from "@rbxts/snapdragon";
-import ZirconTitlebar, { ButtonProps, TITLEBAR_SIZE } from "./Titlebar";
+import type { SnapMargin } from "@rbxts/snapdragon";
+import Snapdragon, { SnapdragonController } from "@rbxts/snapdragon";
+
+import type { ButtonProps } from "./Titlebar";
+import ZirconTitlebar, { TITLEBAR_SIZE } from "./Titlebar";
 
 interface WindowProps {
-	/**
-	 * Whether or not this window is draggable
-	 */
+	/** @deprecated Just nest a `ScrollView` in this component. */
+	ContentType?: "Fixed" | "Scrollable";
+
+	/** The display order of this window. */
+	DisplayOrder?: number;
+
+	/** Event called when the window begins dragging. */
+	DragBegan?: (position: Vector3) => void;
+
+	/** Event called when the window finishes dragging. */
+	DragEnded?: (position: Vector3) => void;
+
+	/** @deprecated Use `SnapIgnoresOffset`. */
+	IgnoreGuiInset?: boolean;
+
+	/** Whether or not this window is draggable. */
 	IsDraggable?: boolean;
 
 	/**
-	 * Whether or not the titlebar is enabled
-	 */
-	TitlebarEnabled?: boolean;
-
-	/**
-	 * The display order of this window
-	 */
-	DisplayOrder?: number;
-
-	/**
-	 * The title text
+	 * Whether or not to wrap this in a ScreenGui.
 	 *
-	 * Only shows if `TitlebarEnabled` is true.
+	 * Defaults to `true`.
 	 */
-	TitleText?: string;
+	NativeWindow?: boolean;
 
-	/**
-	 * The position of this window
-	 */
+	/** The position of this window. */
 	Position?: UDim2;
 
-	/**
-	 * The size of this window
-	 */
+	/** Event called when the position is changed. */
+	PositionChanged?: (position: UDim2) => void;
+
+	/** The size of this window. */
 	Size?: UDim2;
 
-	/**
-	 * @deprecated Just nest a `ScrollView` in this component
-	 */
-	ContentType?: "Scrollable" | "Fixed";
-
-	/**
-	 * Whether or not snapping is enabled for this window
-	 */
+	/** Whether or not snapping is enabled for this window. */
 	SnapEnabled?: boolean;
 
-	/**
-	 * If true, the snap will ignore the offset set by GuiService.
-	 */
+	/** If true, the snap will ignore the offset set by GuiService. */
 	SnapIgnoresOffset?: boolean;
-
-	/**
-	 * The margin of the screen the snap adheres to
-	 */
+	/** The margin of the screen the snap adheres to. */
 	SnapMargin?: SnapMargin;
 
 	/**
@@ -63,48 +56,28 @@ interface WindowProps {
 	 *
 	 * The value for each axis is added onto the `SnapMargin`.
 	 *
-	 * So a SnapMargin of {Vertical: 50, Horizontal: 50}
-	 *
-	 * plus a SnapThresholdMargin of {Vertical: 25, Horizontal: 25}
-	 *
-	 * Will case the snap to occur at {Vertical: 75, Horizontal: 75}
+	 * So a SnapMargin of {Vertical: 50, Horizontal: 50} plus a
+	 * SnapThresholdMargin of {Vertical: 25, Horizontal: 25}, will cause the
+	 * snap to occur at {Vertical: 75, Horizontal: 75}.
 	 */
 	SnapThresholdMargin?: SnapMargin;
 
 	TitlebarButtons?: Array<ButtonProps>;
+
 	TitlebarCloseAction?: () => void;
 
-	/**
-	 * @deprecated Use `SnapIgnoresOffset`
-	 */
-	IgnoreGuiInset?: boolean;
+	/** Whether or not the titlebar is enabled. */
+	TitlebarEnabled?: boolean;
 
 	/**
-	 * Whether or not to wrap this in a ScreenGui.
+	 * The title text.
 	 *
-	 * Defaults to `true`.
+	 * Only shows if `TitlebarEnabled` is true.
 	 */
-	NativeWindow?: boolean;
+	TitleText?: string;
 
-	/**
-	 * The background transparency of this window
-	 */
+	/** The background transparency of this window. */
 	Transparency?: number;
-
-	/**
-	 * The ZIndexBehaviour of this window, only works if `NativeWindow` is true (which it is by default)
-	 */
-	ZIndexBehaviour?: Enum.ZIndexBehavior;
-
-	/**
-	 * Event called when the window begins dragging
-	 */
-	DragBegan?: (pos: Vector3) => void;
-
-	/**
-	 * Event called when the window finishes dragging
-	 */
-	DragEnded?: (pos: Vector3) => void;
 
 	// /**
 	//  * @experimental
@@ -113,25 +86,27 @@ interface WindowProps {
 	// SavePosition?: boolean;
 
 	/**
-	 * Event called when the position is changed
+	 * The ZIndexBehaviour of this window, only works if `NativeWindow` is true
+	 * (which it is by default).
 	 */
-	PositionChanged?: (pos: UDim2) => void;
+	ZIndexBehaviour?: Enum.ZIndexBehavior;
 }
 interface WindowState {}
 
 export default class ZirconWindow extends Roact.Component<WindowProps, WindowState> {
-	private dragRef = Snapdragon.createRef();
-	private windowRef = Roact.createRef<Frame>();
+	private readonly dragRef = Snapdragon.createRef();
+	private readonly maid = new Maid();
+	private readonly windowRef = Roact.createRef<Frame>();
 	private dragController: SnapdragonController | undefined;
-	private maid = new Maid();
 
-	public didMount() {
+	// eslint-disable-next-line max-lines-per-function -- a 20
+	public didMount(): void {
 		const {
-			TitlebarEnabled = false,
 			IsDraggable = false,
 			SnapEnabled = true,
 			SnapMargin,
 			SnapThresholdMargin: SnapThreshold,
+			TitlebarEnabled = false,
 		} = this.props;
 		const windowRef = this.windowRef.getValue();
 		if (windowRef !== undefined) {
@@ -139,11 +114,11 @@ export default class ZirconWindow extends Roact.Component<WindowProps, WindowSta
 
 			this.dragController = new SnapdragonController(this.dragRef, {
 				SnapEnabled,
-				SnapThreshold,
 				SnapMargin,
+				SnapThreshold,
 			});
 
-			if (TitlebarEnabled === false && IsDraggable === true) {
+			if (!TitlebarEnabled && IsDraggable) {
 				this.dragController.Connect();
 
 				if (this.props.DragBegan !== undefined) {
@@ -173,33 +148,34 @@ export default class ZirconWindow extends Roact.Component<WindowProps, WindowSta
 		}
 	}
 
-	public willUnmount() {
+	public willUnmount(): void {
 		this.maid.DoCleaning();
 	}
 
-	public render() {
-		const props = this.props;
+	// eslint-disable-next-line max-lines-per-function -- a 19
+	public render(): Roact.Element {
+		const { props } = this;
 		const {
-			NativeWindow = true,
-			IsDraggable = false,
-			TitlebarEnabled = false,
-			SnapEnabled,
-			SnapIgnoresOffset,
-			SnapThresholdMargin,
-			SnapMargin,
-			ZIndexBehaviour = Enum.ZIndexBehavior.Global,
-			TitlebarButtons = [],
-			TitlebarCloseAction,
 			DragBegan,
 			DragEnded,
+			IsDraggable = false,
+			NativeWindow = true,
+			SnapEnabled,
+			SnapIgnoresOffset,
+			SnapMargin,
+			SnapThresholdMargin,
+			TitlebarButtons = [],
+			TitlebarCloseAction,
+			TitlebarEnabled = false,
+			ZIndexBehaviour = Enum.ZIndexBehavior.Global,
 		} = props;
 
 		if (TitlebarCloseAction !== undefined) {
 			TitlebarButtons.push({
 				Alignment: "right",
+				Color: Color3.fromRGB(170, 0, 0),
 				Icon: "Close",
 				OnClick: TitlebarCloseAction,
-				Color: Color3.fromRGB(170, 0, 0),
 			});
 		}
 

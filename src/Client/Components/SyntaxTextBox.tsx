@@ -1,9 +1,11 @@
-import Roact from "@rbxts/roact";
-import ZirconIcon from "./Icon";
-import { ZrRichTextHighlighter } from "@rbxts/zirconium/out/Ast";
-import ThemeContext, { convertColorObjectToHex, ThemeSyntaxColors } from "../../Client/UIKit/ThemeContext";
 import Maid from "@rbxts/maid";
+import Roact from "@rbxts/roact";
 import { UserInputService } from "@rbxts/services";
+import { ZrRichTextHighlighter } from "@rbxts/zirconium/out/Ast";
+
+import type { ThemeSyntaxColors } from "../../Client/UIKit/ThemeContext";
+import ThemeContext, { convertColorObjectToHex } from "../../Client/UIKit/ThemeContext";
+import ZirconIcon from "./Icon";
 
 export const enum HistoryTraversalDirection {
 	Back = -1,
@@ -11,10 +13,10 @@ export const enum HistoryTraversalDirection {
 }
 
 interface SyntaxTextBoxState {
-	source: string;
 	cursorPosition: number;
-	virtualCursorPosition: number;
 	focused?: boolean;
+	source: string;
+	virtualCursorPosition: number;
 }
 interface SyntaxTextBoxProps {
 	/**
@@ -117,10 +119,12 @@ export default class ZirconSyntaxTextBox extends Roact.Component<SyntaxTextBoxPr
 		}
 	}
 
-	public render() {
+	// eslint-disable-next-line max-lines-per-function -- a 23
+	public render(): Roact.Element {
 		return (
 			<ThemeContext.Consumer
-				render={(theme) => {
+				// eslint-disable-next-line max-lines-per-function -- a 24
+				render={theme => {
 					const highlighter = new ZrRichTextHighlighter(
 						this.state.source,
 						theme.SyntaxHighlighter
@@ -155,13 +159,14 @@ export default class ZirconSyntaxTextBox extends Roact.Component<SyntaxTextBoxPr
 								Size={new UDim2(1, 0, 1, 0)}
 								Text={this.state.source}
 								Change={{
-									Text: (rbx) => this.setState({ source: rbx.Text.gsub("\t", " ")[0] }),
-									CursorPosition: (rbx) =>
+									CursorPosition: rbx =>
 										this.setState({ virtualCursorPosition: rbx.CursorPosition }),
+									Text: rbx =>
+										this.setState({ source: rbx.Text.gsub("\t", " ")[0] }),
 								}}
 								TextTransparency={0.75}
 								Event={{
-									Focused: (rbx) => {
+									Focused: rbx => {
 										this.setState({ focused: true, source: "" });
 
 										this.focusMaid.GiveTask(
@@ -170,18 +175,24 @@ export default class ZirconSyntaxTextBox extends Roact.Component<SyntaxTextBoxPr
 													io.UserInputState === Enum.UserInputState.Begin &&
 													io.UserInputType === Enum.UserInputType.Keyboard
 												) {
-													if (this.props.CancelKeyCodes?.includes(io.KeyCode)) {
+													if (
+														this.props.CancelKeyCodes?.includes(
+															io.KeyCode,
+														)
+													) {
 														this.props.OnCancel?.();
 														rbx.ReleaseFocus();
 														rbx.Text = "";
-													} else if (io.IsModifierKeyDown(Enum.ModifierKey.Ctrl)) {
+													} else if (
+														io.IsModifierKeyDown(Enum.ModifierKey.Ctrl)
+													) {
 														this.props.OnControlKey?.(io.KeyCode, io);
 													}
 												}
 											}),
 										);
 									},
-									FocusLost: (textBox, enterPressed, inputThatCausedFocusLoss) => {
+									FocusLost: (textBox, enterPressed) => {
 										if (enterPressed && !this.props.MultiLine) {
 											this.props.OnEnterSubmit?.(textBox.Text);
 										}
@@ -222,9 +233,14 @@ export default class ZirconSyntaxTextBox extends Roact.Component<SyntaxTextBoxPr
 									Text=""
 									Size={new UDim2(0, 20, 0, 20)}
 									Position={new UDim2(1, -25, 0, 0)}
-									Event={{ MouseButton1Click: () => this.setState({ source: "" }) }}
+									Event={{
+										MouseButton1Click: () => this.setState({ source: "" }),
+									}}
 								>
-									<uilistlayout VerticalAlignment="Center" HorizontalAlignment="Center" />
+									<uilistlayout
+										VerticalAlignment="Center"
+										HorizontalAlignment="Center"
+									/>
 									<ZirconIcon Icon="Close" />
 								</textbutton>
 							)}

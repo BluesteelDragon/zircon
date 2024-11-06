@@ -1,7 +1,10 @@
 import { MessageTemplateParser, TemplateTokenKind } from "@rbxts/message-templates";
 import t from "@rbxts/t";
 import ZrTextStream from "@rbxts/zirconium/out/Ast/TextStream";
-import { getRichTextColor3, ZirconTheme, ZirconThemeDefinition } from "Client/UIKit/ThemeContext";
+
+import type { ZirconThemeDefinition } from "Client/UIKit/ThemeContext";
+import { getRichTextColor3, ZirconTheme } from "Client/UIKit/ThemeContext";
+
 interface PlainTextToken {
 	Type: "Text";
 	Value: string;
@@ -11,20 +14,20 @@ interface VariableToken {
 	Value: string;
 }
 type FormatToken = PlainTextToken | VariableToken;
-export function formatParse(formatString: string) {
+// eslint-disable-next-line max-lines-per-function -- a 14
+export function formatParse(formatString: string): Array<FormatToken> {
 	const tokens = new Array<FormatToken>();
 	const stream = new ZrTextStream(formatString);
-	const isNotEndVarBracket = (c: string) => c !== "}";
+	const isNotEndVariableBracket = (char: string): boolean => char !== "}";
 
-	/**
-	 * Reads while the specified condition is met, or the end of stream
-	 */
-	function readWhile(condition: (str: string) => boolean) {
-		let src = "";
-		while (stream.hasNext() === true && condition(stream.peek()) === true) {
-			src += stream.next();
+	/** Reads while the specified condition is met, or the end of stream. */
+	function readWhile(condition: (str: string) => boolean): string {
+		let source = "";
+		while (stream.hasNext() && condition(stream.peek())) {
+			source += stream.next();
 		}
-		return src;
+
+		return source;
 	}
 
 	let str = "";
@@ -38,7 +41,7 @@ export function formatParse(formatString: string) {
 				}),
 			);
 			str = "";
-			const variable = readWhile(isNotEndVarBracket);
+			const variable = readWhile(isNotEndVariableBracket);
 			tokens.push(
 				identity<VariableToken>({
 					Type: "Variable",
@@ -66,89 +69,97 @@ export function formatParse(formatString: string) {
 const isArray = t.array(t.any);
 const isMap = t.map(t.string, t.any);
 
+// eslint-disable-next-line max-lines-per-function, ts/default-param-last -- a 13
 export function formatRichText(value: unknown, level = 1, theme: ZirconThemeDefinition): string {
 	if (typeIs(value, "string")) {
-		return getRichTextColor3(theme, "Green", `${value}`);
+		return getRichTextColor3(theme, "Green", value);
 	} else if (typeIs(value, "number") || typeIs(value, "boolean")) {
 		return getRichTextColor3(theme, "Cyan", tostring(value));
 	} else if (isArray(value)) {
 		if (level > 1) {
 			return getRichTextColor3(theme, "Grey", `[...]`);
-		} else {
-			return getRichTextColor3(
-				ZirconTheme,
-				"Grey",
-				`[${value.map((v) => formatRichText(v, level + 1, theme)).join(", ")}]`,
-			);
 		}
+
+		return getRichTextColor3(
+			ZirconTheme,
+			"Grey",
+			`[${value.map(value_ => formatRichText(value_, level + 1, theme)).join(", ")}]`,
+		);
 	} else if (isMap(value)) {
 		if (level > 1) {
 			return getRichTextColor3(theme, "Grey", `{...}`);
-		} else {
-			const arr = new Array<string>();
-			for (const [k, v] of value) {
-				arr.push(`${getRichTextColor3(theme, "White", k)}: ${formatRichText(v, level + 1, theme)}`);
-			}
-			return getRichTextColor3(theme, "Grey", `{${arr.join(", ")}}`);
 		}
+
+		const array = new Array<string>();
+		for (const [key, value_] of value) {
+			array.push(
+				`${getRichTextColor3(theme, "White", key)}: ${formatRichText(value_, level + 1, theme)}`,
+			);
+		}
+
+		return getRichTextColor3(theme, "Grey", `{${array.join(", ")}}`);
 	} else if (typeIs(value, "Instance")) {
-		return getRichTextColor3(theme, "Orange", `${value.GetFullName()}`);
+		return getRichTextColor3(theme, "Orange", value.GetFullName());
 	} else if (value === undefined) {
 		return getRichTextColor3(theme, "Cyan", "undefined");
-	} else {
-		return getRichTextColor3(theme, "Yellow", `<${tostring(value)}>`);
 	}
+
+	return getRichTextColor3(theme, "Yellow", `<${tostring(value)}>`);
 }
 
 function formatPlainText(value: unknown, level = 1): string {
 	if (typeIs(value, "string") || typeIs(value, "number") || typeIs(value, "boolean")) {
 		return tostring(value);
 	} else if (isArray(value)) {
-		if (level > 1) {
-			return `[...]`;
-		} else {
-			return `[${value.map((v) => formatPlainText(v, level + 1)).join(", ")}]`;
-		}
+		return level > 1
+			? `[...]`
+			: `[${value.map(value_ => formatPlainText(value_, level + 1)).join(", ")}]`;
 	} else if (isMap(value)) {
 		if (level > 1) {
 			return `{...}`;
-		} else {
-			const arr = new Array<string>();
-			for (const [k, v] of value) {
-				arr.push(`${k}: ${formatPlainText(v, level + 1)}`);
-			}
-			return `{${arr.join(", ")}}`;
 		}
+
+		const array = new Array<string>();
+		for (const [key, value_] of value) {
+			array.push(`${key}: ${formatPlainText(value_, level + 1)}`);
+		}
+
+		return `{${array.join(", ")}}`;
 	} else if (typeIs(value, "Instance")) {
 		return value.GetFullName();
 	} else if (value === undefined) {
 		return "undefined";
-	} else {
-		return tostring(value);
 	}
+
+	return tostring(value);
 }
 
-export function formatTokensPlain(tokens: ReadonlyArray<FormatToken>, vars: unknown[]) {
+export function formatTokensPlain(
+	tokens: ReadonlyArray<FormatToken>,
+	variables: Array<unknown>,
+): string {
 	let resultingStr = "";
-	let idxOffset = 0;
+	let indexOffset = 0;
 	for (const token of tokens) {
 		if (token.Type === "Text") {
 			resultingStr += token.Value;
-		} else if (token.Type === "Variable") {
-			if (token.Value === "") {
-				if (idxOffset > vars.size()) {
-					resultingStr += `{${token.Value}}`;
-				} else {
-					resultingStr += formatPlainText(vars[idxOffset]);
-					idxOffset += 1;
-				}
+		} else if (token.Value === "") {
+			if (indexOffset > variables.size()) {
+				resultingStr += `{${token.Value}}`;
+			} else {
+				resultingStr += formatPlainText(variables[indexOffset]);
+				indexOffset += 1;
 			}
 		}
 	}
+
 	return resultingStr;
 }
 
-export function formatMessageTemplate(template: string, values: Record<string, defined>) {
+export function formatMessageTemplate(
+	template: string,
+	values: Record<string, defined>,
+): string | undefined {
 	const tokens = MessageTemplateParser.GetTokens(template);
 	for (const token of tokens) {
 		if (token.kind === TemplateTokenKind.Property) {
@@ -158,22 +169,24 @@ export function formatMessageTemplate(template: string, values: Record<string, d
 	}
 }
 
-export function formatTokens(tokens: ReadonlyArray<FormatToken>, vars: unknown[]) {
+export function formatTokens(
+	tokens: ReadonlyArray<FormatToken>,
+	variables: Array<unknown>,
+): string {
 	let resultingStr = "";
-	let idxOffset = 0;
+	let indexOffset = 0;
 	for (const token of tokens) {
 		if (token.Type === "Text") {
 			resultingStr += token.Value;
-		} else if (token.Type === "Variable") {
-			if (token.Value === "") {
-				if (idxOffset > vars.size()) {
-					resultingStr += getRichTextColor3(ZirconTheme, "Red", `{${token.Value}}`);
-				} else {
-					resultingStr += formatRichText(vars[idxOffset], undefined, ZirconTheme);
-					idxOffset += 1;
-				}
+		} else if (token.Value === "") {
+			if (indexOffset > variables.size()) {
+				resultingStr += getRichTextColor3(ZirconTheme, "Red", `{${token.Value}}`);
+			} else {
+				resultingStr += formatRichText(variables[indexOffset], undefined, ZirconTheme);
+				indexOffset += 1;
 			}
 		}
 	}
+
 	return resultingStr;
 }

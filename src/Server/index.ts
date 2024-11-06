@@ -10,7 +10,6 @@ import { GetCommandService } from "../Services";
 import Lazy from "../Shared/Lazy";
 import Remotes, { RemoteId, ZirconNetworkMessageType } from "../Shared/Remotes";
 import type { ReadonlyZirconPermissionSet } from "./Class/ZirconGroup";
-import ZrScript from "@rbxts/zirconium/out/Runtime/Script";
 
 const IsServer = RunService.IsServer();
 

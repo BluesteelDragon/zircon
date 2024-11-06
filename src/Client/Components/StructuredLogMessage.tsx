@@ -12,8 +12,8 @@ import { ConsoleReducer } from "Client/BuiltInConsole/Store/_reducers/ConsoleRed
 
 function sanitise(input: string) {
 	return input.gsub("[<>]", {
-		">": "&gt;",
 		"<": "&lt;",
+		">": "&gt;",
 	})[0];
 }
 
