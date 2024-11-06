@@ -1,25 +1,24 @@
 {
 	"compilerOptions": {
-		// required
-		"allowSyntheticDefaultImports": true,
-		"downlevelIteration": true,
+		"target": "ESNext",
 		"jsx": "react",
 		"jsxFactory": "Roact.createElement",
-		"module": "commonjs",
-		"moduleResolution": "Node",
-		"noLib": true,
-		"resolveJsonModule": true,
-		"strict": true,
-		"target": "ESNext",
-		"typeRoots": ["node_modules/@rbxts"],
 		"moduleDetection": "force",
-
-		// configurable
-		"rootDir": "src",
-		"outDir": "out",
+		"noLib": true,
+		"experimentalDecorators": true,
 		"baseUrl": "src",
-		"stripInternal": true,
+		"rootDir": "src",
+		"module": "commonjs",
+		"moduleResolution": "Node10",
+		"resolveJsonModule": true,
+		"typeRoots": ["node_modules/@rbxts"],
+		"strict": true,
 		"declaration": true,
+		"downlevelIteration": true,
+		"outDir": "out",
+		"stripInternal": true,
+		"allowSyntheticDefaultImports": true,
+		"forceConsistentCasingInFileNames": true,
 		"plugins": [
 			{
 				"transform": "rbxts-transform-env"
@@ -36,6 +35,7 @@
 		]
 	},
 	"exclude": [
+		"eslint.config.ts",
 		"example/**",
 		"out/**",
 		"docs/**"
