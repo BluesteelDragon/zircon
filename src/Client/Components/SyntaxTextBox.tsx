@@ -1,7 +1,7 @@
+import { ZrRichTextHighlighter } from "@cwyvern/zirconium/out/ast";
 import Maid from "@rbxts/maid";
 import Roact from "@rbxts/roact";
 import { UserInputService } from "@rbxts/services";
-import { ZrRichTextHighlighter } from "@rbxts/zirconium/out/Ast";
 
 import type { ThemeSyntaxColors } from "../../Client/UIKit/ThemeContext";
 import ThemeContext, { convertColorObjectToHex } from "../../Client/UIKit/ThemeContext";

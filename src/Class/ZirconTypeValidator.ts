@@ -1,10 +1,10 @@
-import { ZrEnum } from "@rbxts/zirconium/out/Data/Enum";
-import { ZrEnumItem } from "@rbxts/zirconium/out/Data/EnumItem";
-import type { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
-import ZrObject from "@rbxts/zirconium/out/Data/Object";
-import ZrRange from "@rbxts/zirconium/out/Data/Range";
-import ZrUndefined from "@rbxts/zirconium/out/Data/Undefined";
-import { ZrInstanceUserdata } from "@rbxts/zirconium/out/Data/Userdata";
+import { ZrEnum } from "@cwyvern/zirconium/out/data/enum";
+import { ZrEnumItem } from "@cwyvern/zirconium/out/data/enum-item";
+import type { ZrValue } from "@cwyvern/zirconium/out/data/locals";
+import ZrObject from "@cwyvern/zirconium/out/data/object";
+import ZrRange from "@cwyvern/zirconium/out/data/range";
+import ZrUndefined from "@cwyvern/zirconium/out/data/undefined";
+import { ZrInstanceUserdata } from "@cwyvern/zirconium/out/data/userdata";
 
 import { zirconTypeOf } from "Shared/type-id";
 
@@ -91,7 +91,9 @@ export const NativeEnumItem: ZirconValidator<ZrEnumItem> = {
 
 export interface ZirconOptionalValidator<T, U = T>
 	extends ZirconValidator<T | ZrUndefined, U | undefined> {}
-export function ZirconOptionalValidator<I, O>(validator: ZirconValidator<I, O>) {
+export function ZirconOptionalValidator<I, O>(
+	validator: ZirconValidator<I, O>,
+): ZirconOptionalValidator<I, InferOptionalOutput<I, O>> {
 	return {
 		Transform(value: unknown, player?: Player) {
 			if (validator.Validate(value, player)) {
@@ -104,7 +106,7 @@ export function ZirconOptionalValidator<I, O>(validator: ZirconValidator<I, O>) 
 				return value as unknown as O | undefined;
 			}
 
-			return undefined;
+			return;
 		},
 		Type: validator.Type + "?",
 		Validate(value: unknown, player?: Player): value is I | ZrUndefined {
@@ -197,7 +199,7 @@ export type InferValidators<T extends ReadonlyArray<Validator>> = {
 // } & { length: T["length"] };
 
 export type ExtractValidators<T extends ReadonlyArray<Validator>> = {
-	[P in keyof T]: T[P] extends keyof BuiltInValidators ? BuiltInValidators[T[P] & string] : T[P];
+	[P in keyof T]: T[P] extends keyof BuiltInValidators ? BuiltInValidators[string & T[P]] : T[P];
 };
 
 export type IWantToStabMyselfWithAFuckingFork<T> = T extends keyof BuiltInValidators

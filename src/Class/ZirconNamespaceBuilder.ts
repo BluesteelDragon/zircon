@@ -27,7 +27,12 @@ export class ZirconNamespaceBuilder {
 		return this;
 	}
 
-	/** @internal */
+	/**
+	 * @param callback
+	 * @param functionName
+	 * @param functionDescription
+	 * @internal
+	 */
 	// eslint-disable-next-line max-lines-per-function -- a 4
 	public AddHelpFunction(
 		callback: HelpFunc = (name, args, desc) => {
@@ -53,12 +58,18 @@ export class ZirconNamespaceBuilder {
 			new ZirconFunctionBuilder(functionName)
 				.AddArgument("string?")
 				.AddDescription(functionDescription)
+				// eslint-disable-next-line max-lines-per-function -- Namespace help func setup.
 				.Bind((_, memberName) => {
 					const matchingMember =
 						memberName !== undefined
 							? this.functions.find(
-									(f) => f.GetName().lower().find(memberName.lower(), 1, true)[0] !== undefined,
-							  )
+									// eslint-disable-next-line arrow-style/arrow-return-style -- FIXME: AntFu's Newline rule and arrow-style conflicts after a couple fixes, fix this up somehow!
+									func =>
+										func
+											.GetName()
+											.lower()
+											.find(memberName.lower(), 1, true)[0] !== undefined,
+								)
 							: undefined;
 					if (matchingMember) {
 						const args = matchingMember.GetArgumentTypes();
@@ -70,14 +81,14 @@ export class ZirconNamespaceBuilder {
 						callback(matchingMember.GetName(), args, matchingMember.GetDescription());
 					} else {
 						this.functions
-							.map((f) => {
-								const args = f.GetArgumentTypes();
-								const variadicType = f.GetVariadicType();
+							.map(func => {
+								const args = func.GetArgumentTypes();
+								const variadicType = func.GetVariadicType();
 								if (variadicType !== undefined) {
 									args.push(`...${variadicType}`);
 								}
 
-								return [f.GetName(), args, f.GetDescription()] as const;
+								return [func.GetName(), args, func.GetDescription()] as const;
 							})
 							.forEach(argument => {
 								callback(...argument);

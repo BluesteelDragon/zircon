@@ -1,7 +1,7 @@
-import type { Node } from "@rbxts/zirconium/out/Ast/Nodes/NodeTypes";
-import type { ZrParserError } from "@rbxts/zirconium/out/Ast/Parser";
-import type { Token } from "@rbxts/zirconium/out/Ast/Tokens/Tokens";
-import type { ZrRuntimeError } from "@rbxts/zirconium/out/Runtime/Runtime";
+import type { Node } from "@cwyvern/zirconium/out/ast/nodes/node-types";
+import type { ZrParserError } from "@cwyvern/zirconium/out/ast/parser";
+import type { Token } from "@cwyvern/zirconium/out/ast/tokens/tokens";
+import type { ZrRuntimeError } from "@cwyvern/zirconium/out/runtime/runtime";
 
 import { $dbg } from "rbxts-transform-debug";
 
@@ -14,12 +14,19 @@ import { ZirconNetworkMessageType } from "./remotes";
 
 /** @internal */
 export namespace ZirconDebug {
-	/** @internal */
+	/**
+	 * @param err
+	 * @internal
+	 */
 	export function IsParserError(err: ZrParserError | ZrRuntimeError): err is ZrParserError {
 		return err.code >= 1000;
 	}
 
-	/** @internal */
+	/**
+	 * @param source
+	 * @param node
+	 * @internal
+	 */
 	// eslint-disable-next-line max-lines-per-function -- a
 	export function GetDebugInformationForNode(
 		source: string,
@@ -34,21 +41,21 @@ export namespace ZirconDebug {
 		let lineEnd = source.size();
 		let reachedToken = false;
 		let reachedEndToken = false;
-		for (let i = 0; i < source.size(); i++) {
-			const char = source.sub(i + 1, i + 1);
+		for (let index = 0; index < source.size(); index++) {
+			const char = source.sub(index + 1, index + 1);
 
-			if (i === startPosition) {
+			if (index === startPosition) {
 				reachedToken = true;
 			}
 
-			if (i === endPosition) {
+			if (index === endPosition) {
 				reachedEndToken = true;
 			}
 
 			if (char === "\n") {
-				lineEnd = i;
+				lineEnd = index;
 				if (!reachedToken) {
-					lineStart = i + 1;
+					lineStart = index + 1;
 				} else if (reachedEndToken) {
 					break;
 				}
@@ -73,7 +80,11 @@ export namespace ZirconDebug {
 		}
 	}
 
-	/** @internal */
+	/**
+	 * @param source
+	 * @param token
+	 * @internal
+	 */
 	// eslint-disable-next-line max-lines-per-function -- a 2
 	export function GetDebugInformationForToken(
 		source: string,
@@ -84,20 +95,20 @@ export namespace ZirconDebug {
 		let lineStart = 0;
 		let lineEnd = source.size();
 		let reachedToken = false;
-		for (let i = 0; i < source.size(); i++) {
-			const char = source.sub(i + 1, i + 1);
+		for (let index = 0; index < source.size(); index++) {
+			const char = source.sub(index + 1, index + 1);
 
-			if (i === token.startPos) {
+			if (index === token.startPos) {
 				reachedToken = true;
 			}
 
 			if (char === "\n") {
-				lineEnd = i;
+				lineEnd = index;
 				if (reachedToken) {
 					break;
 				}
 
-				lineStart = i + 1;
+				lineStart = index + 1;
 				row += 1;
 				col = 1;
 			} else {
@@ -118,7 +129,11 @@ export namespace ZirconDebug {
 		}
 	}
 
-	/** @internal */
+	/**
+	 * @param source
+	 * @param zrError
+	 * @internal
+	 */
 	export function GetMessageForError(
 		source: string,
 		zrError: ZrParserError | ZrRuntimeError,

@@ -1,7 +1,7 @@
+import { ZrRichTextHighlighter } from "@cwyvern/zirconium/out/ast";
 import Roact from "@rbxts/roact";
 import { connect } from "@rbxts/roact-rodux";
 import StringUtils from "@rbxts/string-utils";
-import { ZrRichTextHighlighter } from "@rbxts/zirconium/out/Ast";
 
 import { last } from "Shared/Collections";
 

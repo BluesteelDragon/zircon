@@ -1,13 +1,13 @@
+import type { ZrValue } from "@cwyvern/zirconium/out/data/locals";
 import { LogLevel } from "@rbxts/log";
-import type { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
 
 import ZirconServer from "Server";
 
+import type { ZirconGroupConfiguration } from "./zircon-group-builder";
+import { ZirconGroupBuilder } from "./zircon-group-builder";
 import type { ZirconAfterContext, ZirconBeforeContext } from "./ZirconContext";
 import type { ZirconEnum } from "./ZirconEnum";
 import type { ZirconFunction } from "./ZirconFunction";
-import type { ZirconGroupConfiguration } from "./ZirconGroupBuilder";
-import { ZirconGroupBuilder } from "./ZirconGroupBuilder";
 import type { ZirconNamespace } from "./ZirconNamespace";
 import type { ZirconValidator } from "./ZirconTypeValidator";
 
@@ -38,6 +38,11 @@ export interface ZirconConfiguration {
 	readonly Registry: Array<ZirconScopedGlobal>;
 }
 
+const DEFAULT_ADMIN_ZR_RANK = 254;
+const DEFAULT_ADMIN_RANK = 254;
+const DEFAULT_CREATOR_ZR_RANK = 255;
+const DEFAULT_USER_ZR_RANK = 1;
+
 export const enum ZirconDefaultGroup {
 	Admin = "admin",
 	Creator = "creator",
@@ -54,15 +59,13 @@ export interface DefaultUserGroupOptions {
 }
 
 export class ZirconConfigurationBuilder {
-	public configuration: Writable<ZirconConfiguration> = {
-		GroupGlobalsMap: new Map(),
-		Groups: [],
-		Hooks: {
-			AfterExecute: [],
-			BeforeExecute: [],
-		},
-		Registry: [],
+	private readonly groups = new Array<ZirconGroupConfiguration>();
+	private readonly hooks: MappedArray<Hooks> = {
+		AfterExecute: [],
+		BeforeExecute: [],
 	};
+
+	private registry = new Array<ZirconScopedGlobal>();
 
 	/**
 	 * Creates a group, given the specified configuration.
@@ -77,8 +80,8 @@ export class ZirconConfigurationBuilder {
 		id: string,
 		configurator: (group: ZirconGroupBuilder) => ZirconGroupBuilder,
 	): this {
-		const group = new ZirconGroupBuilder(this, rank, id);
-		configurator(group).Add();
+		const groupConfig = configurator(new ZirconGroupBuilder(rank, id)).Build();
+		this.groups.push(groupConfig);
 		return this;
 	}
 
@@ -86,10 +89,13 @@ export class ZirconConfigurationBuilder {
 	 * Creates a default `creator` group. This will refer to either the game
 	 * creator, or group creator.
 	 *
-	 * @returns
+	 * @returns The configuration builder for chaining.
 	 */
-	public CreateDefaultCreatorGroup(): ZirconConfigurationBuilder {
-		return new ZirconGroupBuilder(this, 255, ZirconDefaultGroup.Creator)
+	public CreateDefaultCreatorGroup(): this {
+		const groupConfig = new ZirconGroupBuilder(
+			DEFAULT_CREATOR_ZR_RANK,
+			ZirconDefaultGroup.Creator,
+		)
 			.BindToCreator()
 			.SetPermissions({
 				CanAccessFullZirconEditor: true,
@@ -97,7 +103,9 @@ export class ZirconConfigurationBuilder {
 				CanReceiveServerLogMessages: true,
 				CanViewLogMetadata: true,
 			})
-			.Add();
+			.Build();
+		this.groups.push(groupConfig);
+		return this;
 	}
 
 	/**
@@ -112,26 +120,31 @@ export class ZirconConfigurationBuilder {
 	 *
 	 * @returns
 	 */
-	public CreateDefaultAdminGroup(): ZirconConfigurationBuilder;
+	public CreateDefaultAdminGroup(): this;
 	public CreateDefaultAdminGroup(
 		builder: (group: ZirconGroupBuilder) => ZirconGroupBuilder,
 	): ZirconConfigurationBuilder;
-	public CreateDefaultAdminGroup(options: DefaultAdminGroupOptions): ZirconConfigurationBuilder;
+	public CreateDefaultAdminGroup(options: DefaultAdminGroupOptions): this;
+	// eslint-disable-next-line max-lines-per-function -- FIXME: Maybe I'll make this smaller eventually.
 	public CreateDefaultAdminGroup(
 		builderOrOptions?:
 			| ((group: ZirconGroupBuilder) => ZirconGroupBuilder)
 			| DefaultAdminGroupOptions,
-	): ZirconConfigurationBuilder {
-		const group = new ZirconGroupBuilder(this, 254, ZirconDefaultGroup.Admin).SetPermissions({
+	): this {
+		let group = new ZirconGroupBuilder(
+			DEFAULT_ADMIN_ZR_RANK,
+			ZirconDefaultGroup.Admin,
+		).SetPermissions({
 			CanAccessFullZirconEditor: true,
 			CanExecuteZirconiumScripts: true,
 			CanReceiveServerLogMessages: true,
 			CanViewLogMetadata: true,
 		});
 		if (typeIs(builderOrOptions, "function")) {
-			builderOrOptions(group);
+			group = builderOrOptions(group);
 		} else {
-			const { GroupId = game.CreatorId, GroupRank = 254 } = builderOrOptions ?? {};
+			const { GroupId = game.CreatorId, GroupRank = DEFAULT_ADMIN_RANK } =
+				builderOrOptions ?? {};
 
 			if (game.CreatorType === Enum.CreatorType.Group || GroupId !== game.CreatorId) {
 				group.BindToGroupRank(GroupId, GroupRank);
@@ -146,7 +159,10 @@ export class ZirconConfigurationBuilder {
 			}
 		}
 
-		return group.Add();
+		const groupConfig = group.Build();
+		this.groups.push(groupConfig);
+
+		return this;
 	}
 
 	/**
@@ -154,15 +170,17 @@ export class ZirconConfigurationBuilder {
 	 * used for more sensitive things.
 	 *
 	 * @param options - The permissions options for the default user group.
-	 * @returns This configuration builder.
+	 * @returns The configuration builder for chaining.
 	 */
-	public CreateDefaultUserGroup(options?: DefaultUserGroupOptions): ZirconConfigurationBuilder {
-		return new ZirconGroupBuilder(this, 1, ZirconDefaultGroup.User)
+	public CreateDefaultUserGroup(options?: DefaultUserGroupOptions): this {
+		const groupConfig = new ZirconGroupBuilder(DEFAULT_USER_ZR_RANK, ZirconDefaultGroup.User)
 			.SetPermissions({
 				CanAccessConsole: options?.CanAccessConsole ?? false,
 			})
 			.BindToEveryone()
-			.Add();
+			.Build();
+		this.groups.push(groupConfig);
+		return this;
 	}
 
 	/**
@@ -170,10 +188,10 @@ export class ZirconConfigurationBuilder {
 	 *
 	 * @param namespace - The namespace to add.
 	 * @param groups - The groups this namespace is available to.
-	 * @returns This configuration builder.
+	 * @returns The configuration builder for chaining.
 	 */
 	public AddNamespace(namespace: ZirconNamespace, groups: ReadonlyArray<string>): this {
-		this.configuration.Registry = [...this.configuration.Registry, [namespace, groups]];
+		this.registry.push([namespace, groups]);
 		return this;
 	}
 
@@ -182,10 +200,10 @@ export class ZirconConfigurationBuilder {
 	 *
 	 * @param enumType - The enum to add.
 	 * @param groups - The groups this enum is available to.
-	 * @returns This configuration builder.
+	 * @returns The configuration builder for chaining.
 	 */
 	public AddEnum<K extends string>(enumType: ZirconEnum<K>, groups: ReadonlyArray<string>): this {
-		this.configuration.Registry = [...this.configuration.Registry, [enumType, groups]];
+		this.registry.push([enumType, groups]);
 		return this;
 	}
 
@@ -194,15 +212,14 @@ export class ZirconConfigurationBuilder {
 	 *
 	 * @param functionType - The function to add.
 	 * @param groups - The groups this function is available to.
-	 * @returns This configuration builder.
+	 * @returns The configuration builder for chaining.
 	 */
 	public AddFunction<
 		A extends ReadonlyArray<ZirconValidator<any, any>>,
 		R extends void | ZrValue = void,
-	>(functionType: ZirconFunction<A, R>, 
-groups: ReadonlyArray<string>
-): this {
-		this.configuration.Registry = [...this.configuration.Registry, [functionType, groups]];
+		// eslint-disable-next-line antfu/consistent-list-newline -- Shush too
+	>(functionType: ZirconFunction<A, R>, groups: ReadonlyArray<string>): this {
+		this.registry.push([functionType, groups]);
 		return this;
 	}
 
@@ -212,32 +229,33 @@ groups: ReadonlyArray<string>
 	 * @deprecated
 	 * @param functions - The functions to add to this config.
 	 * @param groupIds - The groups this function is available to.
-	 * @returns This configuration builder.
+	 * @returns The configuration builder for chaining.
 	 */
 	public AddFunctionsToGroups(
 		functions: ReadonlyArray<ZirconFunction<any, any>>,
 		groupIds: ReadonlyArray<string>,
 	): this {
-		const registry = [...this.configuration.Registry];
+		const registry = [...this.registry];
 		for (const func of functions) {
 			registry.push([func, groupIds]);
 		}
 
-		this.configuration.Registry = registry;
+		this.registry = registry;
 		return this;
 	}
 
 	/**
-	 * @param hookName
-	 * @param hookCallback
-	 * @param hookName
-	 * @param hookCallback
-	 * @returns This configuration builder.
+	 * Adds a hook to the configuration that will be called before or after a
+	 * script is executed in the console, depending on the type.
+	 *
+	 * @param hookName - What type of hook this is.
+	 * @param hookCallback - The callback to run when this hook is invoked.
+	 * @returns The configuration builder for chaining.
 	 * @internal
 	 */
 	public AddHook<K extends keyof Hooks>(hookName: K, hookCallback: Hooks[K]): this {
-		const hooks = [...this.configuration.Hooks[hookName], hookCallback];
-		this.configuration.Hooks[hookName] = hooks as MappedArray<Hooks>[K];
+		const hooks = [...this.hooks[hookName], hookCallback];
+		this.hooks[hookName] = hooks as MappedArray<Hooks>[K];
 		return this;
 	}
 
@@ -250,7 +268,7 @@ groups: ReadonlyArray<string>
 	 */
 	public static logging(): ZirconConfiguration {
 		return new ZirconConfigurationBuilder()
-			.CreateGroup(255, ZirconDefaultGroup.Creator, group => {
+			.CreateGroup(DEFAULT_CREATOR_ZR_RANK, ZirconDefaultGroup.Creator, group => {
 				return group.BindToCreator().SetPermissions({
 					CanAccessFullZirconEditor: false,
 					CanExecuteZirconiumScripts: false,
@@ -281,6 +299,11 @@ groups: ReadonlyArray<string>
 	}
 
 	public Build(): ZirconConfiguration {
-		return this.configuration;
+		return {
+			GroupGlobalsMap: new Map(),
+			Groups: this.groups,
+			Hooks: this.hooks,
+			Registry: this.registry,
+		};
 	}
 }

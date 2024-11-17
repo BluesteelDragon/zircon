@@ -1,11 +1,11 @@
+import type ZrContext from "@cwyvern/zirconium/out/data/context";
+import type { ZrValue } from "@cwyvern/zirconium/out/data/locals";
+import type { ZrLuauArgument } from "@cwyvern/zirconium/out/data/luau-function";
+import ZrLuauFunction from "@cwyvern/zirconium/out/data/luau-function";
+import type ZrUndefined from "@cwyvern/zirconium/out/data/undefined";
+import type ZrPlayerScriptContext from "@cwyvern/zirconium/out/runtime/player-script-context";
 import { LogLevel } from "@rbxts/log";
 import { RunService } from "@rbxts/services";
-import type ZrContext from "@rbxts/zirconium/out/Data/Context";
-import type { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
-import type { ZrLuauArgument } from "@rbxts/zirconium/out/Data/LuauFunction";
-import ZrLuauFunction from "@rbxts/zirconium/out/Data/LuauFunction";
-import type ZrUndefined from "@rbxts/zirconium/out/Data/Undefined";
-import type ZrPlayerScriptContext from "@rbxts/zirconium/out/Runtime/PlayerScriptContext";
 
 import { $print } from "rbxts-transform-debug";
 
@@ -70,22 +70,22 @@ export class ZirconFunction<
 
 			const executor = context.getExecutor();
 
-			let transformedArguments = new Array<defined>();
+			let transformedArguments = new Array<ZrLuauArgument>();
 			if (ArgumentValidators.size() > 0) {
 				for (let index = 0; index < ArgumentValidators.size(); index++) {
 					const validator = ArgumentValidators[index];
 					const argument = args[index];
 					if (validator && validator.Validate(argument, executor)) {
-						if (validator.Transform !== undefined) {
-							transformedArguments[index] = validator.Transform(argument, executor) as defined;
-						} else {
-							transformedArguments[index] = argument;
-						}
+						transformedArguments[index] =
+							validator.Transform !== undefined
+								? (validator.Transform(argument, executor) as ZrLuauArgument)
+								: argument;
 					} else {
 						if (RunService.IsServer()) {
 							emitArgumentError(this, context, argument, index, validator);
 							$print("Got", argument);
 						}
+
 						return;
 					}
 				}
@@ -97,16 +97,19 @@ export class ZirconFunction<
 				for (let index = ArgumentValidators.size(); index < args.size(); index++) {
 					const argument = args[index];
 					if (VariadicValidator.Validate(argument, executor)) {
-						if (VariadicValidator.Transform !== undefined) {
-							transformedArguments[index] = VariadicValidator.Transform(argument, executor) as defined;
-						} else {
-							transformedArguments[index] = argument;
-						}
+						transformedArguments[index] =
+							VariadicValidator.Transform !== undefined
+								? (VariadicValidator.Transform(
+										argument,
+										executor,
+									) as ZrLuauArgument)
+								: argument;
 					} else {
 						if (RunService.IsServer()) {
 							emitArgumentError(this, context, argument, index, VariadicValidator);
 							$print("Got", argument);
 						}
+
 						return;
 					}
 				}
@@ -134,7 +137,10 @@ export class ZirconFunction<
 		return VariadicValidator?.Type;
 	}
 
-	/** @internal */
+	/**
+	 * @param context
+	 * @internal
+	 */
 	public RegisterToContext(context: ZrPlayerScriptContext): void {
 		context.registerGlobal(this.name, this);
 	}
@@ -150,10 +156,11 @@ export class ZirconFunction<
 			argumentTypes.push("..." + variadicType);
 		}
 
+		const metaDescription =
+			this.metadata.Description !== undefined ? `/* ${this.metadata.Description} */` : "";
+
 		return (
-			`${this.metadata.Description !== undefined ? `/* ${this.metadata.Description} */` : ""} function ${
-				this.name
-			}(` +
+			`${metaDescription} function ${this.name}(` +
 			argumentTypes.join(", ") +
 			") { [ZirconFunction] }"
 		);

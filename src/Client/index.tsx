@@ -50,7 +50,10 @@ namespace ZirconClient {
 		return GetCommandService("ClientDispatchService");
 	});
 
-	/** @internal */
+	/**
+	 * @param data
+	 * @internal
+	 */
 	export function StructuredLog(data: LogEvent): void {
 		ZirconClientStore.dispatch({
 			message: {
@@ -62,7 +65,10 @@ namespace ZirconClient {
 		});
 	}
 
-	/** @internal */
+	/**
+	 * @param data
+	 * @internal
+	 */
 	export function ZirconErrorLog(
 		data: ZirconiumParserErrorMessage | ZirconiumRuntimeErrorMessage,
 	): void {
@@ -101,10 +107,8 @@ namespace ZirconClient {
 				topbarEnabledState = true;
 				StarterGui.SetCore("TopbarEnabled", false);
 			}
-		} else {
-			if (topbarEnabledState) {
-				StarterGui.SetCore("TopbarEnabled", true);
-			}
+		} else if (topbarEnabledState) {
+			StarterGui.SetCore("TopbarEnabled", true);
 		}
 
 		ZirconClientStore.dispatch({ type: ConsoleActionName.SetConsoleVisible, visible });
@@ -147,10 +151,10 @@ namespace ZirconClient {
 					handle = Roact.mount(
 						<ThemeContext.Provider value={BuiltInThemes[Theme]}>
 							<RoactRodux.StoreProvider store={ZirconClientStore}>
-								<Roact.Fragment>
+								<>
 									<ZirconTopBar />
 									<ConsoleComponent />
-								</Roact.Fragment>
+								</>
 							</RoactRodux.StoreProvider>
 						</ThemeContext.Provider>,
 						Players.LocalPlayer.FindFirstChildOfClass("PlayerGui"),
@@ -189,7 +193,7 @@ namespace ZirconClient {
 			.expect();
 
 		consoleBound = true;
-		if (initialized === false) {
+		if (!initialized) {
 			Remotes.Client.WaitFor(RemoteId.ZirconInitialized)
 				.then(remote => {
 					const connection = remote.Connect(() => {

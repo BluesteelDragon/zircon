@@ -1,9 +1,9 @@
+import type { ZrParserError } from "@cwyvern/zirconium/out/ast/parser";
+import { ZrScriptMode, ZrScriptVersion } from "@cwyvern/zirconium/out/ast/parser";
+import type { ZrRuntimeError } from "@cwyvern/zirconium/out/runtime/runtime";
+import type ZrScript from "@cwyvern/zirconium/out/runtime/script";
 import type { LogEvent } from "@rbxts/log";
 import { LogLevel } from "@rbxts/log";
-import type { ZrParserError } from "@rbxts/zirconium/out/Ast/Parser";
-import { ZrScriptMode, ZrScriptVersion } from "@rbxts/zirconium/out/Ast/Parser";
-import type { ZrRuntimeError } from "@rbxts/zirconium/out/Runtime/Runtime";
-import type ZrScript from "@rbxts/zirconium/out/Runtime/Script";
 
 import ZirconClientStore from "Client/BuiltInConsole/Store";
 import { ConsoleActionName } from "Client/BuiltInConsole/Store/_reducers/console-reducer";
@@ -44,7 +44,10 @@ export namespace ZirconClientDispatchService {
 		});
 	}
 
-	/** @internal */
+	/**
+	 * @param text
+	 * @internal
+	 */
 	// eslint-disable-next-line max-lines-per-function -- a 8
 	export async function ExecuteScript(text: string): Promise<void> {
 		const Registry = GetCommandService("ClientRegistryService");
@@ -56,14 +59,15 @@ export namespace ZirconClientDispatchService {
 				ZrScriptMode.CommandLike,
 			);
 			if (source.isOk()) {
-				resolve(mainScript.createScript(source.okValue));
+				const sourceFile = source.unwrap();
+				resolve(mainScript.createScript(sourceFile));
 			} else {
 				reject(source.unwrapErr().errors);
 			}
 		})
 			.then(async scr => scr.execute())
 			.then(output => {
-				output.forEach((message) => {
+				output.forEach(message => {
 					Log({
 						Level: LogLevel.Information,
 						SourceContext: "Client Script",
@@ -76,8 +80,8 @@ export namespace ZirconClientDispatchService {
 				if (typeIs(err, "table")) {
 					const messages = err as Array<ZrParserError | ZrRuntimeError>;
 					for (const message of messages) {
-						const errMsg = ZirconDebug.GetMessageForError(text, message);
-						ZirconClient.ZirconErrorLog(errMsg);
+						const errMessage = ZirconDebug.GetMessageForError(text, message);
+						ZirconClient.ZirconErrorLog(errMessage);
 					}
 				}
 			});

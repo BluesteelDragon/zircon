@@ -1,11 +1,11 @@
-import t from "@rbxts/t";
-import { ZrEnum } from "@rbxts/zirconium/out/Data/Enum";
-import { ZrEnumItem } from "@rbxts/zirconium/out/Data/EnumItem";
-import type { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
-import ZrObject from "@rbxts/zirconium/out/Data/Object";
-import ZrRange from "@rbxts/zirconium/out/Data/Range";
-import ZrUndefined from "@rbxts/zirconium/out/Data/Undefined";
-import { ZrInstanceUserdata, ZrUserdata } from "@rbxts/zirconium/out/Data/Userdata";
+import { ZrEnum } from "@cwyvern/zirconium/out/data/enum";
+import { ZrEnumItem } from "@cwyvern/zirconium/out/data/enum-item";
+import type { ZrValue } from "@cwyvern/zirconium/out/data/locals";
+import ZrObject from "@cwyvern/zirconium/out/data/object";
+import ZrRange from "@cwyvern/zirconium/out/data/range";
+import ZrUndefined from "@cwyvern/zirconium/out/data/undefined";
+import { ZrInstanceUserdata, ZrUserdata } from "@cwyvern/zirconium/out/data/userdata";
+import { t } from "@rbxts/t";
 
 import { ZirconFunction } from "Class/ZirconFunction";
 

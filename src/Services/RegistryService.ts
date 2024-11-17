@@ -1,10 +1,10 @@
+import type { ZrValue } from "@cwyvern/zirconium/out/data/locals";
+import ZrPlayerScriptContext from "@cwyvern/zirconium/out/runtime/player-script-context";
+import type ZrScriptContext from "@cwyvern/zirconium/out/runtime/script-context";
 import { Players } from "@rbxts/services";
-import type { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
-import ZrPlayerScriptContext from "@rbxts/zirconium/out/Runtime/PlayerScriptContext";
-import type ZrScriptContext from "@rbxts/zirconium/out/Runtime/ScriptContext";
 
-import type { ZirconConfiguration, ZirconScopedGlobal } from "Class/ZirconConfigurationBuilder";
-import { ZirconConfigurationBuilder } from "Class/ZirconConfigurationBuilder";
+import type { ZirconConfiguration, ZirconScopedGlobal } from "Class/zircon-configuration-builder";
+import { ZirconConfigurationBuilder } from "Class/zircon-configuration-builder";
 import { ZirconEnum } from "Class/ZirconEnum";
 import { ZirconFunction } from "Class/ZirconFunction";
 import { ZirconNamespace } from "Class/ZirconNamespace";
@@ -45,7 +45,10 @@ export namespace ZirconRegistryService {
 		return true;
 	}
 
-	/** @internal */
+	/**
+	 * @param player
+	 * @internal
+	 */
 	export function GetScriptContextsForPlayer(player: Player): Array<ZrScriptContext> {
 		let contextArray: Array<ZrScriptContext>;
 		if (!contexts.has(player)) {
@@ -136,11 +139,13 @@ export namespace ZirconRegistryService {
 
 	/**
 	 * Gets the highest player group for this player.
+	 *
+	 * @param player
 	 */
 	export function GetHighestPlayerGroup(player: Player): undefined | ZirconUserGroup {
-		return playerGroupMap
-			.get(player)
-			?.reduce((acc, curr) => (curr.GetRank() > acc.GetRank() ? curr : acc));
+		return playerGroupMap.get(player)?.reduce((accumulator, current) => {
+			return current.GetRank() > accumulator.GetRank() ? current : accumulator;
+		});
 	}
 
 	/**
@@ -162,7 +167,7 @@ export namespace ZirconRegistryService {
 			if (group) {
 				$print(
 					`Add player '${player}' to groups [ ${targetGroups
-						.map((s) => (typeIs(s, "string") ? s : s.GetName()))
+						.map(s => (typeIs(s, "string") ? s : s.GetName()))
 						.join(", ")} ]`,
 				);
 
@@ -172,11 +177,17 @@ export namespace ZirconRegistryService {
 				warn(`[Zircon] Failed to add player '${player}' to group '${tostring(groupOrId)}'`);
 			}
 		}
+
 		playerGroupMap.set(player, playerGroups);
 	}
 
-	/** @internal */
-	export function GetGroupsWithPermission<K extends keyof ZirconPermissions>(permission: K) {
+	/**
+	 * @param permission
+	 * @internal
+	 */
+	export function GetGroupsWithPermission<K extends keyof ZirconPermissions>(
+		permission: K,
+	): Array<ZirconUserGroup> {
 		const matching = new Array<ZirconUserGroup>();
 		for (const [, group] of groups) {
 			if (group.GetPermission(permission)) {
@@ -192,6 +203,7 @@ export namespace ZirconRegistryService {
 	/**
 	 * Gets the players with the specified permission.
 	 *
+	 * @param permission
 	 * @internal
 	 */
 	export function InternalGetPlayersWithPermission<K extends keyof ZirconPermissions>(
@@ -214,7 +226,11 @@ export namespace ZirconRegistryService {
 		return array;
 	}
 
-	/** @internal */
+	/**
+	 * @param player
+	 * @param permission
+	 * @internal
+	 */
 	export function InternalGetPlayerHasPermission<K extends keyof ZirconPermissions>(
 		player: Player,
 		permission: K,
@@ -266,6 +282,7 @@ export namespace ZirconRegistryService {
 	 *
 	 * @param configuration - The configuration to initialize with.
 	 */
+	// eslint-disable-next-line max-lines-per-function -- FIXME: Make me smaller!
 	export function Init(configuration: ZirconConfiguration): void {
 		if (initialized) {
 			return;
@@ -290,7 +307,7 @@ export namespace ZirconRegistryService {
 			RegisterZirconGlobal(typeId);
 		}
 
-		Players.PlayerAdded.Connect((player) => {
+		Players.PlayerAdded.Connect(player => {
 			permissionGroupCache.clear();
 
 			const groupsToJoin = new Array<ZirconUserGroup>();
@@ -304,7 +321,7 @@ export namespace ZirconRegistryService {
 			Remotes.Server.Get(RemoteId.ZirconInitialized).SendToPlayer(player);
 		});
 
-		Players.PlayerRemoving.Connect((player) => {
+		Players.PlayerRemoving.Connect(player => {
 			permissionGroupCache.clear();
 			contexts.delete(player);
 			playerGroupMap.delete(player);

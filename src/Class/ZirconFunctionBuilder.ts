@@ -1,5 +1,5 @@
-import t from "@rbxts/t";
-import type { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
+import type { ZrValue } from "@cwyvern/zirconium/out/data/locals";
+import { t } from "@rbxts/t";
 
 import { ZirconArrayType, ZirconTypeUnion } from "./TypeUtilities";
 import type { ZirconContext } from "./ZirconContext";
@@ -29,7 +29,8 @@ export class ZirconFunctionBuilder<V extends Array<ZirconValidator<unknown, unkn
 	): ZirconValidator<unknown, unknown> {
 		let validator: ZirconValidator<unknown, unknown>;
 		if (typeIs(argumentValidator, "string")) {
-			validator = BuiltInValidators[argumentValidator as keyof BuiltInValidators];
+			// eslint-disable-next-line ts/no-unnecessary-type-assertion -- This IS not unnecessary ESLint, without it TS itself has a breakdown.
+			validator = BuiltInValidators[argumentValidator as keyof typeof BuiltInValidators];
 		} else if (argumentValidator instanceof ZirconEnum) {
 			validator = argumentValidator.getValidator();
 		} else {
@@ -48,11 +49,11 @@ export class ZirconFunctionBuilder<V extends Array<ZirconValidator<unknown, unkn
 	}
 
 	/**
-	 * Adds an argument to this zircon function.
+	 * Adds an argument to this ZirconFunction.
 	 *
 	 * @param argumentValidator - The argument type/validator.
 	 * @param description - The description for this argument.
-	 * @returns The containing builder.
+	 * @returns This ZirconFunctionBuilder for chaining.
 	 */
 	public AddArgument<TValidation extends Validator>(
 		argumentValidator: Array<TValidation> | TValidation,
@@ -64,11 +65,11 @@ export class ZirconFunctionBuilder<V extends Array<ZirconValidator<unknown, unkn
 	}
 
 	/**
-	 * Adds an array argument to this zircon function.
+	 * Adds an array argument to this ZirconFunction.
 	 *
 	 * @param argumentValidator - The argument type/validator.
 	 * @param description - The description for this argument.
-	 * @returns The containing builder.
+	 * @returns This ZirconFunctionBuilder for chaining.
 	 */
 	public AddArrayArgument<TValidation extends Validator>(
 		argumentValidator: Array<TValidation> | TValidation,
@@ -84,10 +85,10 @@ export class ZirconFunctionBuilder<V extends Array<ZirconValidator<unknown, unkn
 	}
 
 	/**
-	 * Adds a variadic argument to this zircon function.
+	 * Adds a variadic argument to this ZirconFunction.
 	 *
-	 * @param argument
-	 * @returns
+	 * @param argument - The validator(s) to use for this variadic.
+	 * @returns This ZirconFunctionBuilder for chaining.
 	 */
 	public AddVariadicArgument<TValidation extends Validator>(
 		argument: Array<TValidation> | TValidation,
@@ -109,13 +110,21 @@ export class ZirconFunctionBuilder<V extends Array<ZirconValidator<unknown, unkn
 	 * Adds a description to the function.
 	 *
 	 * @param description - The description of this function.
-	 * @returns
+	 * @returns This ZirconFunctionBuilder for chaining.
 	 */
 	public AddDescription(description: string): Omit<this, "AddDescription"> {
 		this.description = description;
 		return this as Omit<this, "AddDescription">;
 	}
 
+	/**
+	 * Binds the provided function to this ZirconFunction.
+	 *
+	 * This is the 'build' method of this builder.
+	 *
+	 * @param func - The actual function to be invoked by this ZirconFunction.
+	 * @returns A ZirconFunction.
+	 */
 	public Bind<R extends void | ZrValue>(
 		func: (context: ZirconContext, ...args: InferArguments<V>) => R,
 	): ZirconFunction<V, R> {

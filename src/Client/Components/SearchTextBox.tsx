@@ -14,17 +14,20 @@ interface SearchTextBoxState {
 	Value?: string;
 }
 export default class SearchTextBox extends Roact.Component<SearchTextBoxProps, SearchTextBoxState> {
-	public constructor(props: SearchTextBoxProps) {
+	constructor(props: SearchTextBoxProps) {
 		super(props);
 		this.state = {
 			Value: props.Value,
 		};
 	}
-	public render() {
+
+	// eslint-disable-next-line max-lines-per-function -- a
+	public render(): Roact.Element {
 		const { Size = new UDim2(0, 400, 0, 30) } = this.props;
 		return (
 			<ThemeContext.Consumer
-				render={(theme) => {
+				// eslint-disable-next-line max-lines-per-function -- a
+				render={theme => {
 					return (
 						<frame Size={Size} BackgroundTransparency={1}>
 							<uilistlayout
@@ -37,7 +40,10 @@ export default class SearchTextBox extends Roact.Component<SearchTextBoxProps, S
 								BackgroundColor3={theme.PrimaryBackgroundColor3}
 								BorderColor3={theme.SecondaryBackgroundColor3}
 							>
-								<uilistlayout VerticalAlignment="Center" HorizontalAlignment="Center" />
+								<uilistlayout
+									VerticalAlignment="Center"
+									HorizontalAlignment="Center"
+								/>
 								<ZirconIcon Icon="Funnel" />
 							</frame>
 							<frame

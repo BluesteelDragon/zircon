@@ -1,6 +1,6 @@
+import type { ZrParserError } from "@cwyvern/zirconium/out/ast/parser";
+import type { ZrRuntimeError } from "@cwyvern/zirconium/out/runtime/runtime";
 import { RunService } from "@rbxts/services";
-import type { ZrParserError } from "@rbxts/zirconium/out/Ast/Parser";
-import type { ZrRuntimeError } from "@rbxts/zirconium/out/Runtime/Runtime";
 
 import { $print } from "rbxts-transform-debug";
 import { ZirconDebug } from "Shared/Debugging";
@@ -13,21 +13,22 @@ import type { ReadonlyZirconPermissionSet } from "./Class/ZirconGroup";
 
 const IsServer = RunService.IsServer();
 
+const accessError = "Zircon Service only accessible on server";
 namespace ZirconServer {
 	/** The server registry for Zircon. */
 	export const Registry = Lazy(() => {
-		assert(IsServer, "Zircon Service only accessible on server");
+		assert(IsServer, accessError);
 		return GetCommandService("RegistryService");
 	});
 
 	/** The server dispatch for Zircon. */
 	export const Dispatch = Lazy(() => {
-		assert(IsServer, "Zircon Service only accessible on server");
+		assert(IsServer, accessError);
 		return GetCommandService("DispatchService");
 	});
 
 	export const Log = Lazy(() => {
-		assert(IsServer, "Zircon Service only accessible on server");
+		assert(IsServer, accessError);
 		return GetCommandService("LogService");
 	});
 
@@ -37,7 +38,7 @@ namespace ZirconServer {
 		const DispatchToServer = Remotes.Server.Create(RemoteId.DispatchToServer);
 
 		async function dispatch(player: Player, text: string): Promise<ReadonlyArray<string>> {
-			return Dispatch.ExecuteScript(player, text).then(result => result.execute());
+			return Dispatch.ExecuteScript(player, text).then(async result => result.execute());
 		}
 
 		DispatchToServer.Connect((player, message) => {

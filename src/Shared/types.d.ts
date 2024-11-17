@@ -1,6 +1,6 @@
-import type ZrContext from "@rbxts/zirconium/out/Data/Context";
-import type { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
-import type { ZrLuauArgument } from "@rbxts/zirconium/out/Data/LuauFunction";
+import type ZrContext from "@cwyvern/zirconium/out/data/context";
+import type { ZrValue } from "@cwyvern/zirconium/out/data/locals";
+import type { ZrLuauArgument } from "@cwyvern/zirconium/out/data/luau-function";
 
 export interface ZirconFunctionDeclaration<
 	T extends Array<ZrLuauArgument> = Array<ZrLuauArgument>,

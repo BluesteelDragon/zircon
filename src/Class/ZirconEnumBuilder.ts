@@ -19,6 +19,7 @@ export class ZirconEnumBuilder<K extends string = never> {
 	 * @param name - The name of the enum member.
 	 * @returns The enum builder.
 	 */
+	// eslint-disable-next-line ts/prefer-return-this-type -- May be necessary, test later.
 	public AddEnumMember<TName extends string>(name: TName): ZirconEnumBuilder<K | TName> {
 		this.members.push(name as string as K);
 		return this;

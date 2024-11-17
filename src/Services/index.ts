@@ -1,4 +1,4 @@
-import t from "@rbxts/t";
+import { t } from "@rbxts/t";
 
 import Lazy from "../Shared/Lazy";
 import TSRequire from "../Shared/ts-import-shim";
@@ -28,6 +28,7 @@ const HasDependencyInjection = t.interface({
 const serviceMap = new Map<string, ServiceMap[keyof ServiceMap]>();
 const serviceLoading = new Set<string>();
 
+// eslint-disable-next-line max-lines-per-function -- a
 function GetServiceInt<K extends keyof ServiceMap>(
 	service: K,
 	importingFrom?: keyof ServiceMap,
@@ -45,7 +46,7 @@ function GetServiceInt<K extends keyof ServiceMap>(
 		const serviceMaster = TSRequire(script, service) as Map<string, ServiceMap[K]>;
 
 		const importId = IS_SERVER ? `Zircon${service}` : `Zircon${service}`;
-		svcImport = serviceMaster.get(importId) as ServiceMap[K];
+		svcImport = serviceMaster.get(importId)!;
 		if (svcImport === undefined) {
 			throw `Tried importing service: ${service}, but no matching ${importId} declaration.`;
 		}
@@ -55,7 +56,9 @@ function GetServiceInt<K extends keyof ServiceMap>(
 		if (HasDependencyInjection(svcImport)) {
 			const dependencies = new Array<defined>();
 			for (const dependency of svcImport.dependencies) {
-				dependencies.push(Lazy(() => GetServiceInt(dependency as keyof ServiceMap, service)));
+				dependencies.push(
+					Lazy(() => GetServiceInt(dependency as keyof ServiceMap, service)),
+				);
 			}
 
 			svcImport.LoadDependencies(...dependencies);
@@ -71,7 +74,9 @@ function GetServiceInt<K extends keyof ServiceMap>(
 /**
  * Synchronously imports the service.
  *
+ * @template K - Service name.
  * @param service - The service name.
+ * @returns The requested service.
  * @rbxts server
  * @internal
  */

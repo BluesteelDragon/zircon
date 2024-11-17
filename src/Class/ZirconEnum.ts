@@ -1,4 +1,4 @@
-import { ZrEnum } from "@rbxts/zirconium/out/Data/Enum";
+import { ZrEnum } from "@cwyvern/zirconium/out/data/enum";
 
 import { $print } from "rbxts-transform-debug";
 import { zirconTypeId } from "Shared/type-id";
@@ -26,10 +26,14 @@ export class ZirconEnum<K extends string> extends ZrEnum {
 	 * type.
 	 *
 	 * @param value - The EnumItem to test.
-	 * @returns Boolean for if the provide EnumItem belongs to this Enum.
+	 * @returns Boolean for if the provided EnumItem belongs to this Enum.
 	 */
-	public is(value: ZirconEnumItem<any>): value is ZirconEnumItem<ZirconEnum<K>, K> {
-		return this.getItems().includes(value);
+	public is(value: unknown): value is ZirconEnumItem<ZirconEnum<K>, K> {
+		if (value instanceof ZirconEnumItem) {
+			return this.getItems().includes(value);
+		}
+
+		return false;
 	}
 
 	/**
@@ -39,7 +43,10 @@ export class ZirconEnum<K extends string> extends ZrEnum {
 	 * @returns The ZirconEnumItem requested.
 	 */
 	public getItem<TKey extends K>(key: TKey): ZirconEnumItem<ZirconEnum<K>, TKey> {
-		return this.getItems().find((k) => k.getName() === key)! as ZirconEnumItem<ZirconEnum<K>, TKey>;
+		return this.getItems().find(k => k.getName() === key)! as ZirconEnumItem<
+			ZirconEnum<K>,
+			TKey
+		>;
 	}
 
 	/**
@@ -104,7 +111,7 @@ export class ZirconEnum<K extends string> extends ZrEnum {
 					return intItem !== undefined;
 				} else if (value instanceof ZirconEnumItem) {
 					$print("instance cmp", value, enumType);
-					return value.getEnum() === enumType;
+					return (value.getEnum() as ZirconEnum<K>) === enumType;
 				}
 
 				return false;

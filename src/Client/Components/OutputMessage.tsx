@@ -1,7 +1,7 @@
 /* eslint-disable max-lines -- we'll work it out */
+import { ZrRichTextHighlighter } from "@cwyvern/zirconium/out/ast";
 import Roact from "@rbxts/roact";
 import { LocalizationService } from "@rbxts/services";
-import { ZrRichTextHighlighter } from "@rbxts/zirconium/out/Ast";
 
 import { formatParse, formatTokens } from "Client/Format";
 

@@ -1,5 +1,5 @@
+import ZrPlayerScriptContext from "@cwyvern/zirconium/out/runtime/player-script-context";
 import { Players } from "@rbxts/services";
-import ZrPlayerScriptContext from "@rbxts/zirconium/out/Runtime/PlayerScriptContext";
 
 import type {
 	ZirconClientConfiguration,
@@ -19,8 +19,8 @@ export namespace ZirconClientRegistryService {
 	 * NOTE: This is 100% insecure because it's on the client, and thus
 	 * shouldn't use any elevated functions (WIP client).
 	 *
+	 * @ignore
 	 * @param configuration
-	 * @hidden @deprecated
 	 */
 	export function Init(configuration: ZirconClientConfiguration): void {
 		for (const global of configuration.Registry) {

@@ -1,8 +1,8 @@
-import type { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
+import type { ZrValue } from "@cwyvern/zirconium/out/data/locals";
 
 import type { ZirconEnum } from "./ZirconEnum";
 import type { ZirconFunction } from "./ZirconFunction";
-import type { ZirconGroupConfiguration } from "./ZirconGroupBuilder";
+import type { ZirconGroupConfiguration } from "./zircon-group-builder";
 import type { ZirconNamespace } from "./ZirconNamespace";
 import type { ZirconValidator } from "./ZirconTypeValidator";
 
@@ -40,9 +40,12 @@ export class ZirconClientConfigurationBuilder {
 	 * @param functionType - The function to add.
 	 * @returns This client configuration builder.
 	 */
-	public AddFunction<A extends readonly ZirconValidator<unknown, unknown>[], R extends void | ZrValue>(
-		functionType: ZirconFunction<A, R>,
-	): this {
+	public AddFunction<
+		A extends ReadonlyArray<ZirconValidator<unknown, unknown>>,
+		R extends void | ZrValue,
+		// eslint-disable-next-line format/prettier -- Shush
+	>(functionType: ZirconFunction<A, R>
+): this {
 		this.configuration.Registry = [...this.configuration.Registry, functionType];
 		return this;
 	}

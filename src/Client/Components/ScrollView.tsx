@@ -1,40 +1,44 @@
 import Maid from "@rbxts/maid";
 import Roact from "@rbxts/roact";
+
 import ThemeContext from "../../Client/UIKit/ThemeContext";
 import delayAsync from "../BuiltInConsole/DelayAsync";
 import ZirconIcon from "./Icon";
-import { CalculatePadding, CalculatePaddingUDim2, WidgetAxisPadding, WidgetPadding } from "./Padding";
+import type { WidgetAxisPadding, WidgetPadding } from "./Padding";
+import { CalculatePadding, CalculatePaddingUDim2 } from "./Padding";
 
 interface ScrollViewEvents {
-	ContentSizeChanged?: (size: Vector2, view: ScrollView<never>) => void;
 	CanvasPositionChanged?: (position: Vector2, view: ScrollView<never>) => void;
+	ContentSizeChanged?: (size: Vector2, view: ScrollView<never>) => void;
 }
 
-export type InferEnumNames<T> = T extends { EnumType: Enum, Name: infer A } ? A : never;
+export type InferEnumNames<T> = T extends { EnumType: Enum; Name: infer A } ? A : never;
+
 interface ScrollViewProps extends ScrollViewEvents {
-	Size?: UDim2;
-	Position?: UDim2;
-	Bordered?: boolean;
-
-	Style?: "NoButtons" | "ButtonsOnBar" | "Buttons";
-	Padding?: WidgetPadding;
-
-	ViewRef?: (view: ScrollView<never>) => void;
-
 	AutoScrollToEnd?: boolean;
 
-	SortOrder?: Enum.SortOrder | Enum.SortOrder["Name"];
+	/** Percentage scroll for the auto scroll feature. */
+	AutoScrollToEndThreshold?: number;
+
+	Bordered?: boolean;
 
 	/**
-	 * Enables GridLayout mode
+	 * Enables GridLayout mode.
 	 *
 	 * Note: Will require a `ItemSize` prop.
 	 */
 	GridLayout?: boolean;
-	/**
-	 * Percentage scroll for the auto scroll feature
-	 */
-	AutoScrollToEndThreshold?: number;
+
+	Padding?: WidgetPadding;
+
+	Position?: UDim2;
+
+	Size?: UDim2;
+
+	SortOrder?: Enum.SortOrder | Enum.SortOrder["Name"];
+
+	Style?: "Buttons" | "ButtonsOnBar" | "NoButtons";
+	ViewRef?: (view: ScrollView<never>) => void;
 }
 
 interface GridContent {
@@ -44,80 +48,40 @@ interface GridContent {
 }
 
 interface ListContent {
-	ItemPadding?: number | UDim;
 	ItemAlignment?: Enum.VerticalAlignment | InferEnumNames<Enum.VerticalAlignment>;
+	ItemPadding?: number | UDim;
 }
 
 interface ScrollViewState {
-	size: Vector2;
-	barScale: number;
 	barPos: number;
+	barScale: number;
+	barShown: boolean;
 	loaded: boolean;
 
-	barShown: boolean;
+	size: Vector2;
 }
 
 type ScrollViewInfer<T> = T extends { GridLayout: true }
-	? ScrollViewProps & GridContent
-	: ScrollViewProps & ListContent;
+	? GridContent & ScrollViewProps
+	: ListContent & ScrollViewProps;
 
 export type ScrollViewLike = ScrollView<ScrollViewProps>;
-export type GridScrollViewProps = ScrollViewProps & GridContent;
+export type GridScrollViewProps = GridContent & ScrollViewProps;
 
 export default class ScrollView<T extends ScrollViewProps> extends Roact.Component<
 	ScrollViewInfer<T>,
 	ScrollViewState
 > {
-	private scrollFrame!: ScrollingFrame;
-	private maid: Maid;
-	private scrollListLayout!: UIListLayout | UIGridLayout;
-	/** weird hack for AutoScrollToEnd with frames that start not scrollable */
+	private readonly maid: Maid;
+	/** Weird hack for AutoScrollToEnd with frames that start not scrollable. */
 	private initScrollToBottom = false;
-
-	public constructor(props: ScrollViewInfer<T>) {
-		super(props);
-		this.state = {
-			size: new Vector2(),
-			barScale: 1,
-			barPos: 0,
-			barShown: false,
-			loaded: false,
-		};
-
-		this.maid = new Maid();
-	}
-
-	public invokeUpdate = () => {
-		const size = this.scrollListLayout.AbsoluteContentSize;
-		if (this.props.ContentSizeChanged !== undefined) {
-			const canvasSize = this.scrollFrame.AbsoluteSize;
-			const contentSize = new Vector2(canvasSize.X - 20, size.Y); // since AbsoluteContentSize doesn't calculate X?
-			this.props.ContentSizeChanged(contentSize, this);
-		}
-	};
-
-	// ? CanvasPosition changed handler
-	public canvasPositionUpdated = () => {
-		const canvasPosition = this.scrollFrame.CanvasPosition;
-		const padding = CalculatePadding(this.props.Padding ?? {});
-		const paddingBottomOffset = padding.PaddingBottom?.Offset ?? 0;
-		const paddingTopOffset = padding.PaddingTop?.Offset ?? 0;
-
-		const size = this.scrollListLayout.AbsoluteContentSize.add(
-			new Vector2(0, paddingBottomOffset + paddingTopOffset),
-		);
-
-		this.setState({
-			barPos: canvasPosition.Y / (size.Y - this.scrollFrame.AbsoluteSize.Y),
-		});
-		this.initScrollToBottom = false;
-
-		this.props.CanvasPositionChanged !== undefined && this.props.CanvasPositionChanged(canvasPosition, this);
-	};
+	private scrollFrame!: ScrollingFrame;
+	private scrollListLayout!: UIGridLayout | UIListLayout;
 
 	// ? AbsoluteContentSize changed handler
-	public absoluteContentSizeChanged = () => {
-		const { AutoScrollToEndThreshold = 0.8, AutoScrollToEnd } = this.props;
+	// eslint-disable-next-line max-lines-per-function -- a
+	public absoluteContentSizeChanged = (): void => {
+		const { AutoScrollToEnd, AutoScrollToEndThreshold = 0.8 } = this.props;
 
 		const padding = CalculatePadding(this.props.Padding ?? {});
 		const paddingBottomOffset = padding.PaddingBottom?.Offset ?? 0;
@@ -138,27 +102,73 @@ export default class ScrollView<T extends ScrollViewProps> extends Roact.Compone
 		const canvasAbsoluteSize = this.scrollListLayout.AbsoluteContentSize;
 
 		this.setState({
+			barPos: canvasPosition.Y / (size.Y - canvasSize.Y),
 			barScale: scale,
 			barShown: scale < 1,
-			barPos: canvasPosition.Y / (size.Y - canvasSize.Y),
 		});
 
 		if (this.props.ContentSizeChanged !== undefined) {
-			const contentSize = new Vector2(canvasSize.X - 20, size.Y); // since AbsoluteContentSize doesn't calculate X?
+			// since AbsoluteContentSize doesn't calculate X?
+			const contentSize = new Vector2(canvasSize.X - 20, size.Y);
 			this.props.ContentSizeChanged(contentSize, this);
 		}
 
-		const calculatedSize = canvasAbsoluteSize.Y - this.scrollFrame.AbsoluteWindowSize.Y + paddingBottomOffset;
+		const calculatedSize =
+			canvasAbsoluteSize.Y - this.scrollFrame.AbsoluteWindowSize.Y + paddingBottomOffset;
 
 		if (
 			AutoScrollToEnd &&
-			(canvasPosition.Y / calculatedSize >= AutoScrollToEndThreshold || this.initScrollToBottom)
+			(canvasPosition.Y / calculatedSize >= AutoScrollToEndThreshold ||
+				this.initScrollToBottom)
 		) {
 			this.scrollToEnd();
 		}
 	};
 
-	public didMount() {
+	/** ? CanvasPosition changed handler. */
+	public canvasPositionUpdated = (): void => {
+		const canvasPosition = this.scrollFrame.CanvasPosition;
+		const padding = CalculatePadding(this.props.Padding ?? {});
+		const paddingBottomOffset = padding.PaddingBottom?.Offset ?? 0;
+		const paddingTopOffset = padding.PaddingTop?.Offset ?? 0;
+
+		const size = this.scrollListLayout.AbsoluteContentSize.add(
+			new Vector2(0, paddingBottomOffset + paddingTopOffset),
+		);
+
+		this.setState({
+			barPos: canvasPosition.Y / (size.Y - this.scrollFrame.AbsoluteSize.Y),
+		});
+		this.initScrollToBottom = false;
+
+		this.props.CanvasPositionChanged !== undefined &&
+			this.props.CanvasPositionChanged(canvasPosition, this);
+	};
+
+	public invokeUpdate = (): void => {
+		const size = this.scrollListLayout.AbsoluteContentSize;
+		if (this.props.ContentSizeChanged !== undefined) {
+			const canvasSize = this.scrollFrame.AbsoluteSize;
+			// since AbsoluteContentSize doesn't calculate X?
+			const contentSize = new Vector2(canvasSize.X - 20, size.Y);
+			this.props.ContentSizeChanged(contentSize, this);
+		}
+	};
+
+	constructor(props: ScrollViewInfer<T>) {
+		super(props);
+		this.state = {
+			barPos: 0,
+			barScale: 1,
+			barShown: false,
+			loaded: false,
+			size: new Vector2(),
+		};
+
+		this.maid = new Maid();
+	}
+
+	public didMount(): void {
 		const { AutoScrollToEnd } = this.props;
 
 		if (AutoScrollToEnd) {
@@ -169,6 +179,7 @@ export default class ScrollView<T extends ScrollViewProps> extends Roact.Compone
 			warn("Missing ScrollFrame to ScrollView");
 			return;
 		}
+
 		if (this.scrollListLayout === undefined) {
 			warn("Missing UIListLayout to ScrollView");
 			return;
@@ -177,7 +188,9 @@ export default class ScrollView<T extends ScrollViewProps> extends Roact.Compone
 		const size = this.scrollListLayout.AbsoluteContentSize;
 
 		// Have to wait a frame because of ROBLOX's quirkiness.
-		delayAsync().then(() => this.absoluteContentSizeChanged());
+		delayAsync().then(() => {
+			this.absoluteContentSizeChanged();
+		});
 
 		this.setState({ size });
 
@@ -186,15 +199,16 @@ export default class ScrollView<T extends ScrollViewProps> extends Roact.Compone
 		}
 	}
 
-	public willUnmount() {
+	public willUnmount(): void {
 		this.maid.DoCleaning();
 	}
 
-	public renderBar() {
+	// eslint-disable-next-line max-lines-per-function -- a
+	public renderBar(): Roact.Element | undefined {
 		if (this.state.barShown) {
 			return (
 				<ThemeContext.Consumer
-					render={(theme) => {
+					render={theme => {
 						const scale = this.state.barScale;
 						return (
 							<frame
@@ -202,34 +216,49 @@ export default class ScrollView<T extends ScrollViewProps> extends Roact.Compone
 								BackgroundTransparency={0}
 								BackgroundColor3={theme.SecondaryBackgroundColor3}
 								Size={new UDim2(1, 0, this.state.barScale, 0)}
-								Position={new UDim2(0, 0, this.state.barPos * (1 - this.state.barScale), 0)}
+								Position={
+									new UDim2(
+										0,
+										0,
+										this.state.barPos * (1 - this.state.barScale),
+										0,
+									)
+								}
 							>
-								{scale >= 0.1 && <ZirconIcon Icon="UpArrow" Position={UDim2.fromOffset(2, 0)} />}
-								{scale >= 0.1 && <ZirconIcon Icon="DownArrow" Position={new UDim2(0, 2, 1, -16)} />}
+								{scale >= 0.1 && (
+									<ZirconIcon Icon="UpArrow" Position={UDim2.fromOffset(2, 0)} />
+								)}
+								{scale >= 0.1 && (
+									<ZirconIcon
+										Icon="DownArrow"
+										Position={new UDim2(0, 2, 1, -16)}
+									/>
+								)}
 							</frame>
 						);
 					}}
 				/>
 			);
-		} else {
-			return undefined;
 		}
+
+		return undefined;
 	}
 
-	public scrollToPositionY(position: number) {
+	public scrollToPositionY(position: number): void {
 		this.scrollFrame.CanvasPosition = new Vector2(0, position);
 	}
 
-	public scrollToEnd() {
+	public scrollToEnd(): void {
 		this.scrollFrame.CanvasPosition = new Vector2(0, this.scrollFrame.CanvasSize.Height.Offset);
 		this.initScrollToBottom = true;
 	}
 
-	public getScrollFrame() {
+	public getScrollFrame(): ScrollingFrame {
 		return this.scrollFrame;
 	}
 
-	public renderContentHandler() {
+	// eslint-disable-next-line max-lines-per-function -- a
+	public renderContentHandler(): Roact.Element {
 		const { ItemPadding } = this.props;
 
 		let computedPadding: UDim | undefined;
@@ -240,33 +269,34 @@ export default class ScrollView<T extends ScrollViewProps> extends Roact.Compone
 		}
 
 		if (this.props.GridLayout === true) {
-			const { ItemSize, ItemPadding = 0 } = (this.props as unknown) as GridContent;
+			const { ItemPadding = 0, ItemSize } = this.props as unknown as GridContent;
 			return (
 				<uigridlayout
 					Key="ScrollViewGrid"
 					CellSize={ItemSize}
 					Change={{ AbsoluteContentSize: this.absoluteContentSizeChanged }}
 					CellPadding={CalculatePaddingUDim2(ItemPadding)}
-					Ref={(ref) => (this.scrollListLayout = ref)}
+					Ref={ref => (this.scrollListLayout = ref)}
 					SortOrder={this.props.SortOrder ?? Enum.SortOrder.LayoutOrder}
-				/>
-			);
-		} else {
-			return (
-				<uilistlayout
-					Key="ScrollViewList"
-					VerticalAlignment={this.props.ItemAlignment}
-					Change={{ AbsoluteContentSize: this.absoluteContentSizeChanged }}
-					Padding={computedPadding}
-					SortOrder={this.props.SortOrder ?? Enum.SortOrder.LayoutOrder}
-					Ref={(ref) => (this.scrollListLayout = ref)}
 				/>
 			);
 		}
+
+		return (
+			<uilistlayout
+				Key="ScrollViewList"
+				VerticalAlignment={this.props.ItemAlignment}
+				Change={{ AbsoluteContentSize: this.absoluteContentSizeChanged }}
+				Padding={computedPadding}
+				SortOrder={this.props.SortOrder ?? Enum.SortOrder.LayoutOrder}
+				Ref={ref => (this.scrollListLayout = ref)}
+			/>
+		);
 	}
 
-	public render() {
-		const { Style = "NoButtons", Padding = 0 } = this.props;
+	// eslint-disable-next-line max-lines-per-function -- a
+	public render(): Roact.Element {
+		const { Padding = 0, Style = "NoButtons" } = this.props;
 		const padding = CalculatePadding(Padding);
 		// Include the scrollbar in the equation
 		padding.PaddingRight = (padding.PaddingRight ?? new UDim(0, 0)).add(new UDim(0, 20));
@@ -274,61 +304,69 @@ export default class ScrollView<T extends ScrollViewProps> extends Roact.Compone
 		const useButtons = Style === "Buttons";
 		return (
 			<ThemeContext.Consumer
-				render={(theme) => (
-					<frame Size={this.props.Size || new UDim2(1, 0, 1, 0)} BackgroundTransparency={1}>
-						<scrollingframe
-							Ref={(frame) => (this.scrollFrame = frame)}
-							Key="ScrollFrameHost"
-							Size={new UDim2(1, 0, 1, 0)}
-							Position={this.props.Position}
-							BackgroundTransparency={1}
-							BorderSizePixel={0}
-							CanvasSize={new UDim2(0, this.state.size.X, 0, this.state.size.Y)}
-							BottomImage=""
-							MidImage=""
-							ScrollingDirection="Y"
-							TopImage=""
-							Change={{
-								AbsoluteSize: this.absoluteContentSizeChanged,
-								CanvasPosition: this.canvasPositionUpdated,
-							}}
-							ScrollBarThickness={20}
-						>
-							{this.renderContentHandler()}
-							<uipadding Key="ScrollPadding" {...padding} />
-							{this.props[Roact.Children]}
-						</scrollingframe>
+				// eslint-disable-next-line max-lines-per-function -- a
+				render={theme => {
+					return (
 						<frame
-							Key="ScrollFrameBar"
+							Size={this.props.Size ?? new UDim2(1, 0, 1, 0)}
 							BackgroundTransparency={1}
-							Size={true ? new UDim2(0, 20, 1, 0) : new UDim2(0, 0, 1, 0)}
-							Position={new UDim2(1, -20, 0, 0)}
 						>
-							<frame
-								Key="ScrollFrameBarTrackUpButtonContainer"
-								Size={new UDim2(0, 20, 0, 20)}
+							<scrollingframe
+								Ref={frame => (this.scrollFrame = frame)}
+								Key="ScrollFrameHost"
+								Size={new UDim2(1, 0, 1, 0)}
+								Position={this.props.Position}
 								BackgroundTransparency={1}
-							/>
-							<frame
-								Key="ScrollFrameBarTrack"
-								Size={useButtons ? new UDim2(1, 0, 1, -40) : new UDim2(1, 0, 1, 0)}
-								Position={new UDim2(0, 0, 0, useButtons ? 20 : 0)}
-								BackgroundTransparency={0}
-								BackgroundColor3={theme.PrimaryBackgroundColor3}
-								BorderColor3={theme.SecondaryBackgroundColor3}
-								BorderSizePixel={1}
+								BorderSizePixel={0}
+								CanvasSize={new UDim2(0, this.state.size.X, 0, this.state.size.Y)}
+								BottomImage=""
+								MidImage=""
+								ScrollingDirection="Y"
+								TopImage=""
+								Change={{
+									AbsoluteSize: this.absoluteContentSizeChanged,
+									CanvasPosition: this.canvasPositionUpdated,
+								}}
+								ScrollBarThickness={20}
 							>
-								{this.renderBar()}
-							</frame>
+								{this.renderContentHandler()}
+								<uipadding Key="ScrollPadding" {...padding} />
+								{this.props[Roact.Children]}
+							</scrollingframe>
 							<frame
-								Key="ScrollFrameBarTrackDnButtonContainer"
-								Size={new UDim2(0, 20, 0, 20)}
-								Position={new UDim2(0, 0, 1, -20)}
+								Key="ScrollFrameBar"
 								BackgroundTransparency={1}
-							/>
+								Size={true ? new UDim2(0, 20, 1, 0) : new UDim2(0, 0, 1, 0)}
+								Position={new UDim2(1, -20, 0, 0)}
+							>
+								<frame
+									Key="ScrollFrameBarTrackUpButtonContainer"
+									Size={new UDim2(0, 20, 0, 20)}
+									BackgroundTransparency={1}
+								/>
+								<frame
+									Key="ScrollFrameBarTrack"
+									Size={
+										useButtons ? new UDim2(1, 0, 1, -40) : new UDim2(1, 0, 1, 0)
+									}
+									Position={new UDim2(0, 0, 0, useButtons ? 20 : 0)}
+									BackgroundTransparency={0}
+									BackgroundColor3={theme.PrimaryBackgroundColor3}
+									BorderColor3={theme.SecondaryBackgroundColor3}
+									BorderSizePixel={1}
+								>
+									{this.renderBar()}
+								</frame>
+								<frame
+									Key="ScrollFrameBarTrackDnButtonContainer"
+									Size={new UDim2(0, 20, 0, 20)}
+									Position={new UDim2(0, 0, 1, -20)}
+									BackgroundTransparency={1}
+								/>
+							</frame>
 						</frame>
-					</frame>
-				)}
+					);
+				}}
 			/>
 		);
 	}

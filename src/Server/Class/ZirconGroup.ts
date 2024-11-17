@@ -1,13 +1,13 @@
+import type { ZrEnum } from "@cwyvern/zirconium/out/data/enum";
+import type { ZrValue } from "@cwyvern/zirconium/out/data/locals";
+import type ZrLuauFunction from "@cwyvern/zirconium/out/data/luau-function";
+import type { ZrObjectUserdata } from "@cwyvern/zirconium/out/data/userdata";
 import { RunService } from "@rbxts/services";
-import type { ZrEnum } from "@rbxts/zirconium/out/Data/Enum";
-import type { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
-import type ZrLuauFunction from "@rbxts/zirconium/out/Data/LuauFunction";
-import type { ZrObjectUserdata } from "@rbxts/zirconium/out/Data/Userdata";
 
 import type { ZirconEnum } from "Class/ZirconEnum";
 import type { ZirconFunction } from "Class/ZirconFunction";
-import type { ZirconGroupConfiguration } from "Class/ZirconGroupBuilder";
-import { ZirconBindingType } from "Class/ZirconGroupBuilder";
+import type { ZirconGroupConfiguration } from "Class/zircon-group-builder";
+import { ZirconBindingType } from "Class/zircon-group-builder";
 import type { ZirconNamespace } from "Class/ZirconNamespace";
 
 export interface ZirconRobloxGroupBinding {
@@ -26,7 +26,7 @@ export interface ZirconPermissions {
 	 * Whether or not this group has full access to the Zircon Editor for
 	 * Zirconium.
 	 *
-	 * @deprecated @hidden
+	 * @deprecated @hidden.
 	 */
 	readonly CanAccessFullZirconEditor: boolean;
 	/** Whether or not this group is allowed to execute Zirconium scripts. */
@@ -52,12 +52,12 @@ export enum ZirconGroupType {
 }
 
 export default class ZirconUserGroup {
-	private readonly functions = new Map<string, ZrLuauFunction>();
-	private readonly namespaces = new Map<string, ZrObjectUserdata<defined>>();
 	private readonly enums = new Map<string, ZrEnum>();
-
-	private readonly permissions: ZirconPermissionSet;
+	private readonly functions = new Map<string, ZrLuauFunction>();
 	private readonly members = new WeakSet<Player>();
+
+	private readonly namespaces = new Map<string, ZrObjectUserdata<defined>>();
+	private readonly permissions: ZirconPermissionSet;
 
 	constructor(
 		private readonly id: number,
@@ -141,17 +141,26 @@ export default class ZirconUserGroup {
 		return this.configuration.Permissions[name];
 	}
 
-	/** @internal */
+	/**
+	 * @param func
+	 * @internal
+	 */
 	public RegisterFunction(func: ZirconFunction<any, any>): void {
 		this.functions.set(func.GetName(), func);
 	}
 
-	/** @internal */
+	/**
+	 * @param enumerable
+	 * @internal
+	 */
 	public RegisterEnum(enumerable: ZirconEnum<any>): void {
 		this.enums.set(enumerable.getEnumName(), enumerable);
 	}
 
-	/** @internal */
+	/**
+	 * @param namespace
+	 * @internal
+	 */
 	public RegisterNamespace(namespace: ZirconNamespace): void {
 		this.namespaces.set(namespace.GetName(), namespace.ToUserdata());
 	}

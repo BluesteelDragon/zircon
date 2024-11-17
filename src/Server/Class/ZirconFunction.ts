@@ -1,8 +1,8 @@
-import type ZrContext from "@rbxts/zirconium/out/Data/Context";
-import type { ZrValue } from "@rbxts/zirconium/out/Data/Locals";
-import ZrLuauFunction from "@rbxts/zirconium/out/Data/LuauFunction";
-import ZrObject from "@rbxts/zirconium/out/Data/Object";
-import type ZrUndefined from "@rbxts/zirconium/out/Data/Undefined";
+import type ZrContext from "@cwyvern/zirconium/out/data/context";
+import type { ZrValue } from "@cwyvern/zirconium/out/data/locals";
+import ZrLuauFunction from "@cwyvern/zirconium/out/data/luau-function";
+import ZrObject from "@cwyvern/zirconium/out/data/object";
+import type ZrUndefined from "@cwyvern/zirconium/out/data/undefined";
 
 export type ZrTypeCheck = (value: ZrUndefined | ZrValue) => value is ZrUndefined | ZrValue;
 
@@ -20,6 +20,28 @@ export default class ZirconFunction<
 	A extends ReadonlyArray<ZrTypeCheck>,
 	R = unknown,
 > extends ZrLuauFunction {
+	public static readonly array = (value: unknown): value is Array<ZrValue> => {
+		return typeIs(value, "table");
+	};
+
+	public static create<A extends ReadonlyArray<ZrTypeCheck>, R>(
+		declaration: CommandDeclaration<A, R>,
+	): ZirconFunction<A, R> {
+		return new ZirconFunction<A, R>(declaration);
+	}
+
+	public static readonly boolean = (value: unknown): value is boolean => {
+		return typeIs(value, "number");
+	};
+
+	public static readonly number = (value: unknown): value is number => typeIs(value, "number");
+
+	public static readonly object = (value: unknown): value is ZrObject => {
+		return value instanceof ZrObject;
+	};
+
+	public static readonly string = (value: unknown): value is string => typeIs(value, "string");
+
 	private constructor(private readonly declaration: CommandDeclaration<A, R>) {
 		super((context, ...args) => {
 			for (let index = 0; index < args.size(); index++) {
@@ -32,30 +54,6 @@ export default class ZirconFunction<
 			declaration.Execute(context, ...(args as InferArguments<A>));
 		});
 	}
-
-	public static create<A extends ReadonlyArray<ZrTypeCheck>, R>(
-		declaration: CommandDeclaration<A, R>,
-	): ZirconFunction<A, R> {
-		return new ZirconFunction<A, R>(declaration);
-	}
-
-	public static readonly string = (value: unknown): value is string => typeIs(value, "string");
-
-	public static readonly number = (value: unknown): value is number => {
-		return typeIs(value, "number");
-	};
-
-	public static readonly boolean = (value: unknown): value is boolean => {
-		return typeIs(value, "number");
-	};
-
-	public static readonly array = (value: unknown): value is ZrValue[] => {
-		return typeIs(value, "table");
-	};
-
-	public static readonly object = (value: unknown): value is ZrObject => {
-		return value instanceof ZrObject;
-	};
 }
 
 ZirconFunction.create({

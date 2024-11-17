@@ -3,7 +3,7 @@ import { MessageTemplateParser, PlainTextMessageTemplateRenderer } from "@rbxts/
 
 export { default as ZirconClient } from "./Client";
 export { default as ZirconServer } from "./Server";
-export { ZirconConfigurationBuilder, ZirconDefaultGroup } from "Class/ZirconConfigurationBuilder";
+export { ZirconConfigurationBuilder, ZirconDefaultGroup } from "Class/zircon-configuration-builder";
 export { ZirconEnumBuilder } from "Class/ZirconEnumBuilder";
 export { ZirconFunctionBuilder } from "Class/ZirconFunctionBuilder";
 export { ZirconNamespaceBuilder } from "Class/ZirconNamespaceBuilder";

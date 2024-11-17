@@ -1,4 +1,4 @@
-import { ZrInstanceUserdata } from "@rbxts/zirconium/out/Data/Userdata";
+import { ZrInstanceUserdata } from "@cwyvern/zirconium/out/data/userdata";
 
 import { StatefulZirconValidator } from "../StatefulZirconValidator";
 import { OptionalValidator } from "./OptionalValidator";

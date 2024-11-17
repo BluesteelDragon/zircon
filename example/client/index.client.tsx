@@ -1,5 +1,5 @@
 import Roact from "@rbxts/roact";
-import Zircon, { ZirconClient, ZirconFunctionBuilder } from "@zircon";
+import Zircon, { Log as ZircLog, ZirconClient, ZirconFunctionBuilder } from "@zircon";
 import delayAsync from "./Client/BuiltInConsole/DelayAsync";
 import ZirconDockedConsole from "./Client/BuiltInConsole/UI/DockedConsole";
 import ThemeContext, { ZirconDarkPlastic, makeTheme, ZirconFrost } from "./Client/UIKit/ThemeContext";
@@ -7,9 +7,9 @@ import { Players } from "@rbxts/services";
 import Log, { Logger } from "@rbxts/log";
 import { ZirconClientConfigurationBuilder } from "Class/ZirconClientConfigurationBuilder";
 
-Log.SetLogger(Logger.configure().WriteTo(Zircon.Log.Console()).EnrichWithProperty("Version", PKG_VERSION).Create());
+Log.SetLogger(Logger.configure().WriteTo(ZircLog.Console()).EnrichWithProperty("Version", PKG_VERSION).Create());
 
-ZirconClient.BindConsole({
+ZirconClient.Init({
 	Theme: "Plastic",
 	EnableTags: true,
 	Keys: [Enum.KeyCode.Backquote, Enum.KeyCode.F10],

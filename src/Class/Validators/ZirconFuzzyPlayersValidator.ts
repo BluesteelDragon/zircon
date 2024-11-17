@@ -1,5 +1,5 @@
+import type { ZrInstanceUserdata } from "@cwyvern/zirconium/out/data/userdata";
 import { Players } from "@rbxts/services";
-import type { ZrInstanceUserdata } from "@rbxts/zirconium/out/Data/Userdata";
 
 import ZirconServer from "Server";
 
@@ -65,4 +65,5 @@ export class ZirconFuzzyPlayersValidator extends StatefulZirconValidator<
 
 export const ZirconFuzzyPlayers = new ZirconFuzzyPlayersValidator();
 export const OptionalZirconFuzzyPlayer = new OptionalValidator(ZirconFuzzyPlayers);
+
 ZirconFuzzyPlayers;

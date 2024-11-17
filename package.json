@@ -1,6 +1,6 @@
 {
-	"name": "@rbxts/zircon",
-	"version": "1.0.9",
+	"name": "@cwyvern/zircon",
+	"version": "2.0.0",
 	"description": "",
 	"keywords": [
 		"Runtime scripting",
@@ -9,6 +9,10 @@
 	],
 	"license": "MIT",
 	"author": "Vorlias",
+	"contributors": [
+		"vorlias",
+		"venerith"
+	],
 	"type": "module",
 	"main": "out/init.lua",
 	"types": "out/index.d.ts",
@@ -21,26 +25,27 @@
 		"prepare": "npm run build",
 		"prod:example": "concurrently npm:watch-prod:example npm:serve:example",
 		"serve:example": "rojo serve ./example/default.project.json --port 34567",
+		"watch": "rbxtsc -w --type=game --rojo=test.project.json",
 		"watch-prod:example": "rbxtsc -w --type=game -p ./example -i ./include",
 		"watch:example": "cross-env NODE_ENV=development rbxtsc -w --type=game -p ./example -i ./include"
 	},
 	"dependencies": {
+		"@cwyvern/zirconium": "2.0.0-indev.2",
 		"@rbxts/flipper": "^2.0.1",
 		"@rbxts/log": "^0.6.3",
 		"@rbxts/maid": "^1.0.0-ts.1",
 		"@rbxts/message-templates": "^0.3.2",
 		"@rbxts/net": "^3.0.0-alpha.0",
-		"@rbxts/roact": ">=1.4.0-ts >= 1.4.1-ts >= 1.4.2-ts",
-		"@rbxts/roact-hooks": "=0.3.0-ts.2",
-		"@rbxts/roact-rodux": "=0.2.2-ts.5",
-		"@rbxts/rodux": "=3.0.0-ts.3",
-		"@rbxts/rust-classes": "=0.11.2",
-		"@rbxts/services": "^1.2.0",
+		"@rbxts/roact": "1.4.4-ts.0",
+		"@rbxts/roact-hooks": "0.5.1-ts.0",
+		"@rbxts/roact-rodux": "0.2.2-ts.8",
+		"@rbxts/rodux": "3.0.0-ts.3",
+		"@rbxts/rust-classes": "0.13.0",
+		"@rbxts/services": "1.5.5",
 		"@rbxts/signal": "^1.0.3",
 		"@rbxts/snapdragon": "2.0.0-beta.1",
 		"@rbxts/string-utils": "^1.0.3",
-		"@rbxts/t": "^1.3.5",
-		"@rbxts/zirconium": "^1.1.0"
+		"@rbxts/t": "3.1.1"
 	},
 	"devDependencies": {
 		"@eslint-react/eslint-plugin": "1.14.2",

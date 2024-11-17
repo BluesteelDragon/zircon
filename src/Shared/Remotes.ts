@@ -1,7 +1,7 @@
+import type { ZrParserErrorCode } from "@cwyvern/zirconium/out/ast/parser";
+import type { ZrRuntimeErrorCode } from "@cwyvern/zirconium/out/runtime/runtime";
 import type { LogEvent } from "@rbxts/log";
 import Net from "@rbxts/net";
-import type { ZrParserErrorCode } from "@rbxts/zirconium/out/Ast/Parser";
-import type { ZrRuntimeErrorCode } from "@rbxts/zirconium/out/Runtime/Runtime";
 
 import type { ReadonlyZirconPermissionSet } from "Server/Class/ZirconGroup";
 

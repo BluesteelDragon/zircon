@@ -1,22 +1,26 @@
-import Zr from "@rbxts/zirconium";
-import { ZrScriptVersion } from "@rbxts/zirconium/out/Ast/Parser";
-import type ZrScript from "@rbxts/zirconium/out/Runtime/Script";
+import Zr from "@cwyvern/zirconium";
+import { ZrScriptVersion } from "@cwyvern/zirconium/out/ast/parser";
+import type ZrScript from "@cwyvern/zirconium/out/runtime/script";
 
 import { GetCommandService } from "../Services";
 
+// eslint-disable-next-line ts/naming-convention -- Refers to the standard io (std io), it's common to name it this way.
 interface stdio {
 	stdin: Array<string>;
 	stdout: Array<string>;
 }
 
-export interface ExecutionParams extends stdio {
+export interface ExecutionParameters extends stdio {
 	pipedOutput: boolean;
 }
 
 export namespace ZirconDispatchService {
 	const globalContext = Zr.createContext("global");
 
-	/** @internal */
+	/**
+	 * @param text
+	 * @internal
+	 */
 	export async function ExecuteScriptGlobal(text: string): Promise<ZrScript> {
 		return Promise.defer<ZrScript>((resolve, reject) => {
 			// const source = globalContext.parseSource(text);
@@ -36,7 +40,8 @@ export namespace ZirconDispatchService {
 			const [mainScript] = Registry.GetScriptContextsForPlayer(player);
 			const source = mainScript.parseSource(text, ZrScriptVersion.Zr2022);
 			if (source.isOk()) {
-				resolve(mainScript.createScript(source.okValue));
+				const sourceFile = source.unwrap();
+				resolve(mainScript.createScript(sourceFile));
 			} else {
 				reject(source.unwrapErr().errors);
 			}

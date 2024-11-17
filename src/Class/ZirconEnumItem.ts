@@ -1,4 +1,4 @@
-import { ZrEnumItem } from "@rbxts/zirconium/out/Data/EnumItem";
+import { ZrEnumItem } from "@cwyvern/zirconium/out/data/enum-item";
 
 import type { EnumMatchTree, ZirconEnum } from "./ZirconEnum";
 
@@ -10,10 +10,10 @@ export class ZirconEnumItem<
 	/**
 	 * Performs a match against this enum value - similar to `match` in Rust.
 	 *
-	 * @param matches The matches to check against
+	 * @param matches - The matches to check against.
 	 */
 	public match<R>(matches: EnumMatchTree<TParent, K, R>): R {
-		return matches[this.getName() as K](this);
+		return matches[this.getName()](this);
 	}
 
 	public getName(): K {

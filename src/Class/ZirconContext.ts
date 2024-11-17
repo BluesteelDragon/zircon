@@ -1,3 +1,5 @@
+import type ZrContext from "@cwyvern/zirconium/out/data/context";
+import type { ZrInputStream, ZrOutputStream } from "@cwyvern/zirconium/out/data/stream";
 import type { LogEvent } from "@rbxts/log";
 import { LogLevel } from "@rbxts/log";
 import type { PropertyToken } from "@rbxts/message-templates";
@@ -8,8 +10,6 @@ import {
 } from "@rbxts/message-templates/out/MessageTemplateToken";
 import { RbxSerializer } from "@rbxts/message-templates/out/RbxSerializer";
 import { RunService } from "@rbxts/services";
-import type ZrContext from "@rbxts/zirconium/out/Data/Context";
-import type { ZrInputStream, ZrOutputStream } from "@rbxts/zirconium/out/Data/Stream";
 
 import type { ZirconFunction } from "./ZirconFunction";
 
@@ -71,13 +71,13 @@ export class ZirconContext
 				for (const token of propertyTokens) {
 					const argument = args[index++];
 
-					if (index <= args.size()) {
-						if (argument !== undefined) {
-							if (token.destructureMode === DestructureMode.ToString) {
-								message[token.propertyName] = tostring(argument);
-							} else {
-								message[token.propertyName] = typeIs(argument, "table") ? argument : RbxSerializer.Serialize(argument);
-							}
+					if (index <= args.size() && argument !== undefined) {
+						if (token.destructureMode === DestructureMode.ToString) {
+							message[token.propertyName] = tostring(argument);
+						} else {
+							message[token.propertyName] = typeIs(argument, "table")
+								? argument
+								: RbxSerializer.Serialize(argument);
 						}
 					}
 				}

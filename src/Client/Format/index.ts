@@ -1,6 +1,6 @@
+import ZrTextStream from "@cwyvern/zirconium/out/ast/text-stream";
 import { MessageTemplateParser, TemplateTokenKind } from "@rbxts/message-templates";
-import t from "@rbxts/t";
-import ZrTextStream from "@rbxts/zirconium/out/Ast/TextStream";
+import { t } from "@rbxts/t";
 
 import type { ZirconThemeDefinition } from "Client/UIKit/ThemeContext";
 import { getRichTextColor3, ZirconTheme } from "Client/UIKit/ThemeContext";
@@ -20,7 +20,11 @@ export function formatParse(formatString: string): Array<FormatToken> {
 	const stream = new ZrTextStream(formatString);
 	const isNotEndVariableBracket = (char: string): boolean => char !== "}";
 
-	/** Reads while the specified condition is met, or the end of stream. */
+	/**
+	 * Reads while the specified condition is met, or the end of stream.
+	 *
+	 * @param condition
+	 */
 	function readWhile(condition: (str: string) => boolean): string {
 		let source = "";
 		while (stream.hasNext() && condition(stream.peek())) {

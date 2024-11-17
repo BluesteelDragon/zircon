@@ -15,5 +15,10 @@
 	// Enable the ESLint flat config support
 	"eslint.useFlatConfig": true,
 	"eslint.validate": ["typescript", "typescriptreact", "markdown", "json", "jsonc", "yaml", "toml", "luau"],
-	"eslint.options": { "flags": ["unstable_ts_config"] }
+	"eslint.options": {
+		"flags": [
+			"unstable_ts_config"
+		]
+	},
+	"luau-lsp.sourcemap.rojoProjectFile": "test.project.json"
 }

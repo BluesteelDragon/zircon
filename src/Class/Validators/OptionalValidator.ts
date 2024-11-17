@@ -1,4 +1,4 @@
-import ZrUndefined from "@rbxts/zirconium/out/Data/Undefined";
+import ZrUndefined from "@cwyvern/zirconium/out/data/undefined";
 
 import { StatefulZirconValidator } from "../StatefulZirconValidator";
 import type { ZirconValidator } from "../ZirconTypeValidator";
